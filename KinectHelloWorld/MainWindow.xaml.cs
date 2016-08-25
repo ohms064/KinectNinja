@@ -50,14 +50,14 @@ namespace KinectHelloWorld
 
         private void MainWindowLoaded(object sender, RoutedEventArgs e){
 
-            KinectSensorChooser sensorStatus = new KinectSensorChooser();
+            KinectSensorChooser kinectSensorChooser = new KinectSensorChooser();
 
-            sensorStatus.KinectChanged += KinectSensorChooserKinectChanged; 
+            kinectSensorChooser.KinectChanged += KinectSensorChooserKinectChanged; 
             //Entonces la función es KinectSensorChooser.KinectChanged(object sender, KinectChangedEventARgs e)
 
-            kinectChooser.KinectSensorChooser = sensorStatus;
+            kinectChooser.KinectSensorChooser = kinectSensorChooser;
 
-            sensorStatus.Start();
+            kinectSensorChooser.Start();
 
         }
 
@@ -135,12 +135,12 @@ namespace KinectHelloWorld
              * a la derecha del kinect y el eje Y 
              * */
 
-            var rightHand = skel.Joints[JointType.WristRight];
+            var rightHand = skel.Joints[JointType.HandRight];
             XValueRight.Text = rightHand.Position.X.ToString(CultureInfo.InvariantCulture);
             YValueRight.Text = rightHand.Position.Y.ToString(CultureInfo.InvariantCulture);
             ZValueRight.Text = rightHand.Position.Z.ToString(CultureInfo.InvariantCulture);
 
-            var leftHand = skel.Joints[JointType.WristLeft];
+            var leftHand = skel.Joints[JointType.HandLeft];
             XValueLeft.Text = leftHand.Position.X.ToString(CultureInfo.InvariantCulture);
             YValueLeft.Text = leftHand.Position.Y.ToString(CultureInfo.InvariantCulture);
             ZValueLeft.Text = leftHand.Position.Z.ToString(CultureInfo.InvariantCulture);
