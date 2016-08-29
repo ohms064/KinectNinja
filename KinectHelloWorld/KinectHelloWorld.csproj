@@ -77,6 +77,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="SupportClasses\DistanceTools.cs" />
+    <Compile Include="SupportClasses\MouseController.cs" />
+    <Compile Include="SupportClasses\Vector2.cs" />
+    <Compile Include="SupportClasses\Vector3.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -85,6 +89,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ActiveClickWindow.cs" />
     <Compile Include="InteractionClient.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

@@ -34,5 +34,14 @@
         <TextBlock x:Name="RightGesture" HorizontalAlignment="Left" Margin="431,91,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Text="Right Hand:"/>
         <TextBlock x:Name="LeftRaised" HorizontalAlignment="Left" Margin="10,112,0,0" TextWrapping="Wrap" VerticalAlignment="Top"/>
         <TextBlock x:Name="RightRaised" HorizontalAlignment="Left" Margin="431,112,0,0" TextWrapping="Wrap" VerticalAlignment="Top"/>
+        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Margin="25,236,0,0" TextWrapping="Wrap" Text="Mouse Position:" VerticalAlignment="Top"/>
+        <TextBox x:Name="StatusValue" HorizontalAlignment="Left" Height="23" Margin="213,181,0,0" TextWrapping="Wrap" Text="Status:" VerticalAlignment="Top" Width="65"/>
+        <TextBlock x:Name="textBlock1" HorizontalAlignment="Left" Margin="55,278,0,0" TextWrapping="Wrap" Text="GripEvent:" VerticalAlignment="Top" RenderTransformOrigin="-0.031,-0.462"/>
+        <TextBlock x:Name="MousePos" HorizontalAlignment="Left" Margin="138,236,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" Height="16" Width="257"/>
+        <TextBlock x:Name="GripValue" HorizontalAlignment="Left" Margin="138,278,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" RenderTransformOrigin="-0.027,-0.69"/>
+        <TextBlock x:Name="textBlock2" HorizontalAlignment="Left" Margin="317,281,0,0" TextWrapping="Wrap" Text="ReleaseEvent:" VerticalAlignment="Top"/>
+        <TextBlock x:Name="ReleaseValue" HorizontalAlignment="Left" Margin="398,281,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" RenderTransformOrigin="-0.04,-0.378"/>
+        <TextBlock x:Name="textBlock3" HorizontalAlignment="Left" Margin="138,78,0,0" TextWrapping="Wrap" Text="Recorded Pos:" VerticalAlignment="Top"/>
+        <TextBlock x:Name="lastPos" HorizontalAlignment="Left" Margin="218,81,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top"/>
     </Grid>
 </Window>

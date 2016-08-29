@@ -21,6 +21,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Microsoft.Kinect.Toolkit.Interaction;
 using System.ComponentModel;
+using KinectHelloWorld.SupportClasses;
 
 namespace KinectHelloWorld
 {
@@ -34,15 +35,17 @@ namespace KinectHelloWorld
         private KinectSensor sensor;
         private InteractionStream _interactionStream;
         private UserInfo[] _userInfos;
-        private bool isClick;
+        private bool isClick = false;
+        private MouseController mouseController;
         private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
         private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
-
-
 
         public MainWindow() {
             InitializeComponent();
             Loaded += MainWindowLoaded;
+            Activated += MainWindowActive;
+            Deactivated += MainWindowHidden;
+            mouseController = new MouseController();
         }
 
         private void MainWindowLoaded(object sender, RoutedEventArgs e) {
@@ -53,6 +56,15 @@ namespace KinectHelloWorld
             kinectSensorChooser.Start();
 
             _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
+        }
+
+        private void MainWindowActive(object sender, EventArgs e) {
+            this.Topmost = true;
+        }
+
+        private void MainWindowHidden(object sender, EventArgs e) {
+            this.Topmost = true;
+            Activate();
         }
 
         /// <summary>
@@ -96,9 +108,12 @@ namespace KinectHelloWorld
 
                     _interactionStream = new InteractionStream(sensor, new InteractionClient());
                     _interactionStream.InteractionFrameReady += KinectInteractionFrameReady;
-                    
+
+                    StatusValue.Text = "Connected";
+
                 }
                 catch( InvalidOperationException ) {
+                    StatusValue.Text = "Error";
                     //Ignoramos los errores
                 }
             }
@@ -155,15 +170,17 @@ namespace KinectHelloWorld
 
             //Queremos el más lejano entonces el que tenga el valor más pequeño
             //será la mano que controlará el Mouse.
-            if(MinimumDistanceCondition(hip.Position, rightHand.Position) <= 
-                MinimumDistanceCondition(hip.Position, leftHand.Position) ) {
+            if( DistanceTools.FirstIsClosest(ref hip, ref rightHand, ref leftHand )) {
                 RightRaised.Text = "Activada";
                 LeftRaised.Text = "Desactivado";
-                MoveMouse(rightHand);
-            }else {
+                Vector2 result = mouseController.Move(ref rightHand, isClick);
+                MousePos.Text = string.Format("X: {0}, Y: {1}, Click: {2}", result.x, result.y, isClick ? "Sí" : "No");
+            }
+            else {
                 LeftRaised.Text = "Activada";
                 RightRaised.Text = "Desactivado";
-                MoveMouse(leftHand);
+                Vector2 result = mouseController.Move(ref leftHand, isClick);
+                MousePos.Text = string.Format("X: {0}, Y: {1}, Click: {2}", result.x, result.y, isClick ? "Sí" : "No");
             }
         }
 
@@ -210,49 +227,16 @@ namespace KinectHelloWorld
         }
         #endregion
 
-        /// <summary>
-        /// Función que controla el Mouse con el Joint que se pase de parámetro. Se recomiendan las manos
-        /// pero funciona con cualquier Joint.
-        /// </summary>
-        /// <param name="activeHand">El joint que controla el Mouse.</param>
-        void MoveMouse(Joint activeHand) {
-            Joint scaledHand = activeHand.ScaleTo((int) SystemParameters.PrimaryScreenWidth, (int) SystemParameters.PrimaryScreenHeight, SKELETON_MAX_X, SKELETON_MAX_Y);
-
-            var cursorX = (int) scaledHand.Position.X;
-            var cursorY = (int) scaledHand.Position.Y;
-
-            NativeMethods.SendMouseInput(cursorX, cursorY, (int) SystemParameters.PrimaryScreenWidth, (int) SystemParameters.PrimaryScreenHeight, isClick);
-        }
-
-        /// <summary>
-        /// La condición para determinar que posición está más cerca a un punto.
-        /// La fórmula es: Dot(origin, destiny) - 0.5 Dot(destiny, destiny)
-        /// Donde Dot es el producto punto de esos vectores.
-        /// Para dos puntos destino y un origen el punto destino más cercano
-        /// al origen es aquel cuyo resultado de la ecuación sea el mínimo.
-        /// </summary>
-        /// <param name="origin">El punto que se usará de referencia</param>
-        /// <param name="destiny">El punto de interés</param>
-        /// <returns></returns>
-        float MinimumDistanceCondition(SkeletonPoint origin, SkeletonPoint destiny) {
-            float firstDotMul = 0, secondDotMul = 0;
-            firstDotMul += origin.X * destiny.X;
-            firstDotMul += origin.Y * destiny.Y;
-            firstDotMul += origin.Z * destiny.Z;
-
-            secondDotMul += destiny.X * destiny.X;
-            secondDotMul += destiny.Y * destiny.Y;
-            secondDotMul += destiny.Z * destiny.Z;
-
-            return firstDotMul - 0.5f * secondDotMul;
-        }
-            
         private void AnalyzeGrip(bool grip, bool gripRelease) {
-            if( !grip ) {
-                isClick = gripRelease;
-            }else {
+            GripValue.Text = grip.ToString();
+            ReleaseValue.Text = gripRelease.ToString();
+            if( gripRelease ) {
+                isClick = false;
+            }
+            else if( grip ) {
                 isClick = true;
             }
+
         }
 
     }
