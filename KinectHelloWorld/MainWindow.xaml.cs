@@ -170,7 +170,7 @@ namespace KinectHelloWorld
 
             //Queremos el más lejano entonces el que tenga el valor más pequeño
             //será la mano que controlará el Mouse.
-            if( DistanceTools.FirstIsClosest(ref hip, ref rightHand, ref leftHand )) {
+            if( KinectDistanceTools.FirstIsCloser(ref hip, ref rightHand, ref leftHand )) {
                 RightRaised.Text = "Activada";
                 LeftRaised.Text = "Desactivado";
                 Vector2 result = mouseController.Move(ref rightHand, isClick);
