@@ -36,7 +36,7 @@ namespace KinectHelloWorld
         private InteractionStream _interactionStream;
         private UserInfo[] _userInfos;
         private bool isClick = false;
-        private MouseController mouseController;
+        private KinectMouseController mouseController;
         private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
         private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
 
@@ -45,7 +45,7 @@ namespace KinectHelloWorld
             Loaded += MainWindowLoaded;
             Activated += MainWindowActive;
             Deactivated += MainWindowHidden;
-            mouseController = new MouseController();
+            mouseController = new KinectMouseController();
         }
 
         private void MainWindowLoaded(object sender, RoutedEventArgs e) {
@@ -102,6 +102,15 @@ namespace KinectHelloWorld
                         args.NewSensor.DepthStream.Range = DepthRange.Default;
                         args.NewSensor.SkeletonStream.EnableTrackingInNearRange = false;
                     }
+                    TransformSmoothParameters smoothingParam = new TransformSmoothParameters(); {
+                        smoothingParam.Smoothing = 0.5f;
+                        smoothingParam.Correction = 0.1f;
+                        smoothingParam.Prediction = 0.5f;
+                        smoothingParam.JitterRadius = 0.1f;
+                        smoothingParam.MaxDeviationRadius = 0.1f;
+                    };
+
+                    args.NewSensor.SkeletonStream.Enable(smoothingParam);
                     sensor = args.NewSensor;
                     sensor.SkeletonFrameReady += KinectSkeletonFrameReady;
                     sensor.DepthFrameReady += KinectDepthFrameReady;

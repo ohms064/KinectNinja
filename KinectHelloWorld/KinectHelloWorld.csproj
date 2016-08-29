@@ -78,7 +78,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="SupportClasses\KinectDistanceTools.cs" />
-    <Compile Include="SupportClasses\MouseController.cs" />
+    <Compile Include="SupportClasses\KinectMouseController.cs" />
     <Compile Include="SupportClasses\Vector2.cs" />
     <Compile Include="SupportClasses\Vector3.cs" />
     <Page Include="MainWindow.xaml">
