@@ -23,6 +23,13 @@ namespace KinectHelloWorld.SupportClasses {
             result += first.y * first.y;
             return result;
         }
+
+        public static int DistanceSquared(Vector2 first, Vector2 second) {
+            int firstDist = first.x - second.x;
+            int secondDist = first.y - second.y;
+            return ( firstDist * firstDist ) + ( secondDist * secondDist );
+
+        }
     }
 }
 

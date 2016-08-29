@@ -1,20 +1,16 @@
 ﻿using Coding4Fun.Kinect.Wpf;
 using KinectCursorController;
 using Microsoft.Kinect;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 
 namespace KinectHelloWorld.SupportClasses {
     class MouseController {
         private Joint activeHand;
         private const float SKELETON_MAX_X = 0.60f;
         private const float SKELETON_MAX_Y = 0.40f;
-        private const float MAX_THRESHOLD = 100;
+        private const int MAX_THRESHOLD = 1000;
+        private const int MOUSE_SPEED = 1;
+        private bool isSwiping = false;
         public int previousMouseX = -1, previousMouseY = -1;
 
         public MouseController() {
@@ -43,8 +39,24 @@ namespace KinectHelloWorld.SupportClasses {
                 return new Vector2(-1, -1);
             }
 
-            NativeMethods.SendMouseInput(cursorX, cursorY, (int) SystemParameters.PrimaryScreenWidth, (int) SystemParameters.PrimaryScreenHeight, isClick);
-            return new Vector2(cursorX, cursorY);
+            Vector2 cursorVector = new Vector2(cursorX, cursorY);
+            Vector2 previousVector = new Vector2(previousMouseX, previousMouseY);
+
+            bool surpassDistance = Vector2.DistanceSquared(cursorVector, previousVector) < MAX_THRESHOLD;
+
+            if( isSwiping ) { //Checando si el usuario mueve rápido la mano o es el ruido.
+                isSwiping = surpassDistance;
+            }
+
+            if( surpassDistance || isSwiping) {
+                NativeMethods.SendMouseInput(cursorX, cursorY, (int) SystemParameters.PrimaryScreenWidth, (int) SystemParameters.PrimaryScreenHeight, isClick);
+                isSwiping = false;
+            }else {
+                isSwiping = true; //Might be true
+            }
+            previousMouseX = cursorX;
+            previousMouseY = cursorY;
+            return previousVector;
         }
 
         

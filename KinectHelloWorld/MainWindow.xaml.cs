@@ -157,8 +157,8 @@ namespace KinectHelloWorld
 
             
             Joint hip = firstSkeleton.Joints[JointType.HipCenter];
-            Joint rightHand = firstSkeleton.Joints[JointType.HandRight];
-            Joint leftHand = firstSkeleton.Joints[JointType.HandLeft];
+            Joint rightHand = firstSkeleton.Joints[JointType.WristRight];
+            Joint leftHand = firstSkeleton.Joints[JointType.WristLeft];
 
             XValueRight.Text = rightHand.Position.X.ToString(CultureInfo.InvariantCulture);
             YValueRight.Text = rightHand.Position.Y.ToString(CultureInfo.InvariantCulture);
@@ -197,7 +197,6 @@ namespace KinectHelloWorld
                     continue;
 
                 var hands = userInfo.HandPointers;
-
 
                 if(hands.Count != 0) {
                     foreach( var hand in hands ) {

@@ -50,7 +50,13 @@ namespace KinectHelloWorld.SupportClasses {
                 MinimumDistanceCondition(origin.Position, second.Position);
         }
 
-        public static bool FirstIsClosestToSensor(ref Joint first, ref Joint second) {
+        /// <summary>
+        /// Determina si el primer Joint es el más cercano al Kinect.
+        /// </summary>
+        /// <param name="first">El primer Joint.</param>
+        /// <param name="second">El segundo Joint.</param>
+        /// <returns>True si first está más cercano al Kinect.</returns>
+        public static bool FirstIsCloserToSensor(ref Joint first, ref Joint second) {
             return first.Position.Z < second.Position.Z;
         }
     }
