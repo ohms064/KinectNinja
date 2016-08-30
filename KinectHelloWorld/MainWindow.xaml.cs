@@ -43,6 +43,7 @@ namespace KinectHelloWorld
         public MainWindow() {
             InitializeComponent();
             Loaded += MainWindowLoaded;
+            //For debug only
             Activated += MainWindowActive;
             Deactivated += MainWindowHidden;
             mouseController = new KinectMouseController();
@@ -96,12 +97,19 @@ namespace KinectHelloWorld
                         args.NewSensor.DepthStream.Range = DepthRange.Near;
                         args.NewSensor.SkeletonStream.EnableTrackingInNearRange = true;
                         args.NewSensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
+                        StatusValue.Text = "NearMode";
+
                     }
                     catch( InvalidOperationException ) {
                         // Si el Kinect no es compatible con "Near Mode" lo reestablecemos al default.
                         args.NewSensor.DepthStream.Range = DepthRange.Default;
                         args.NewSensor.SkeletonStream.EnableTrackingInNearRange = false;
+                        StatusValue.Text = "DefaultMode";
                     }
+
+                    sensor = args.NewSensor;
+
+                    //Establece el suavizado del movimiento de los Joints.
                     TransformSmoothParameters smoothingParam = new TransformSmoothParameters(); {
                         smoothingParam.Smoothing = 0.5f;
                         smoothingParam.Correction = 0.1f;
@@ -110,15 +118,15 @@ namespace KinectHelloWorld
                         smoothingParam.MaxDeviationRadius = 0.1f;
                     };
 
-                    args.NewSensor.SkeletonStream.Enable(smoothingParam);
-                    sensor = args.NewSensor;
+                    sensor.SkeletonStream.Enable(smoothingParam);
                     sensor.SkeletonFrameReady += KinectSkeletonFrameReady;
                     sensor.DepthFrameReady += KinectDepthFrameReady;
 
                     _interactionStream = new InteractionStream(sensor, new InteractionClient());
                     _interactionStream.InteractionFrameReady += KinectInteractionFrameReady;
 
-                    StatusValue.Text = "Connected";
+                    StatusValue.Text += " Connected";
+                    CurrentVelocity.Text = string.Format("Current Velocity: {0}, {1}", mouseController.mouseSpeedX, mouseController.mouseSpeedY);
 
                 }
                 catch( InvalidOperationException ) {
@@ -179,7 +187,7 @@ namespace KinectHelloWorld
 
             //Queremos el más lejano entonces el que tenga el valor más pequeño
             //será la mano que controlará el Mouse.
-            if( KinectDistanceTools.FirstIsCloser(ref hip, ref rightHand, ref leftHand )) {
+            if( KinectDistanceTools.FirstIsCloserToSensor( ref rightHand, ref leftHand )) {
                 RightRaised.Text = "Activada";
                 LeftRaised.Text = "Desactivado";
                 Vector2 result = mouseController.Move(ref rightHand, isClick);
@@ -236,8 +244,6 @@ namespace KinectHelloWorld
         #endregion
 
         private void AnalyzeGrip(bool grip, bool gripRelease) {
-            GripValue.Text = grip.ToString();
-            ReleaseValue.Text = gripRelease.ToString();
             if( gripRelease ) {
                 isClick = false;
             }
@@ -247,5 +253,15 @@ namespace KinectHelloWorld
 
         }
 
+        private void ApplyVelocity_Click(object sender, RoutedEventArgs e) {
+            int valueX, valueY;
+            if(int.TryParse(VelocityX.Text, out valueX) ) {
+                mouseController.mouseSpeedX = valueX;
+            }
+            if( int.TryParse(VelocityY.Text, out valueY) ) {
+                mouseController.mouseSpeedY = valueY;
+            }
+            CurrentVelocity.Text = string.Format("Current Velocity: {0}, {1}", mouseController.mouseSpeedX, mouseController.mouseSpeedY);
+        }
     }
 }
