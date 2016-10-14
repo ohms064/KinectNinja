@@ -59,5 +59,11 @@ namespace KinectHelloWorld.SupportClasses {
         public static bool FirstIsCloserToSensor(ref Joint first, ref Joint second) {
             return first.Position.Z < second.Position.Z;
         }
+
+        public static bool FirstSkeletonIsCloserToSensor(ref Skeleton first, ref Skeleton second, JointType jointReference) {
+            Joint firstJoint = first.Joints[jointReference];
+            Joint secondJoint = second.Joints[jointReference];
+            return FirstIsCloserToSensor(ref firstJoint, ref secondJoint);
+        }
     }
 }

@@ -22,6 +22,7 @@ using System.Windows.Shapes;
 using Microsoft.Kinect.Toolkit.Interaction;
 using System.ComponentModel;
 using KinectHelloWorld.SupportClasses;
+using System.Windows.Interop;
 
 namespace KinectHelloWorld
 {
@@ -44,13 +45,12 @@ namespace KinectHelloWorld
             InitializeComponent();
             Loaded += MainWindowLoaded;
             //For debug only
-            Activated += MainWindowActive;
-            Deactivated += MainWindowHidden;
+            //Activated += MainWindowActive;
+            //Deactivated += MainWindowHidden;
             mouseController = new KinectMouseController();
         }
 
         private void MainWindowLoaded(object sender, RoutedEventArgs e) {
-
             KinectSensorChooser kinectSensorChooser = new KinectSensorChooser();
             kinectSensorChooser.KinectChanged += KinectSensorChooserKinectChanged;
             kinectChooser.KinectSensorChooser = kinectSensorChooser;
@@ -158,10 +158,21 @@ namespace KinectHelloWorld
                 return;
 
             //Retorna el primer jugador que tenga tracking del Kinect.
-            Skeleton firstSkeleton = skeletons.FirstOrDefault(x => x.TrackingState == SkeletonTrackingState.Tracked);
-
-            if( firstSkeleton == null )
+            Skeleton firstSkeleton;
+            Skeleton[] trackedSkeletons = (from s in skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s).ToArray();
+            NumberSkeletons.Text = string.Format("{0}, Non-Tracked: {1}", trackedSkeletons.Length.ToString(), skeletons.Length.ToString()) ;
+            if(trackedSkeletons.Length == 0 ) {
                 return;
+            }
+
+            firstSkeleton = trackedSkeletons[0];
+            if(trackedSkeletons.Length > 1 ) {
+                for( int i = 1; i < trackedSkeletons.Length; i++ ) {
+                    if(KinectDistanceTools.FirstSkeletonIsCloserToSensor(ref trackedSkeletons[i], ref firstSkeleton, JointType.HipCenter) ) {
+                        firstSkeleton = trackedSkeletons[i];
+                    }
+                }
+            }
 
             /*
              * El sistema de referencia que ocupa el kinect tiene como origen la posición
@@ -177,13 +188,13 @@ namespace KinectHelloWorld
             Joint rightHand = firstSkeleton.Joints[JointType.WristRight];
             Joint leftHand = firstSkeleton.Joints[JointType.WristLeft];
 
-            XValueRight.Text = rightHand.Position.X.ToString(CultureInfo.InvariantCulture);
-            YValueRight.Text = rightHand.Position.Y.ToString(CultureInfo.InvariantCulture);
-            ZValueRight.Text = rightHand.Position.Z.ToString(CultureInfo.InvariantCulture);
+            XValueRight.Text = rightHand.Position.X.ToString("F", CultureInfo.InvariantCulture);
+            YValueRight.Text = rightHand.Position.Y.ToString("F", CultureInfo.InvariantCulture);
+            ZValueRight.Text = rightHand.Position.Z.ToString("F", CultureInfo.InvariantCulture);
 
-            XValueLeft.Text = leftHand.Position.X.ToString(CultureInfo.InvariantCulture);
-            YValueLeft.Text = leftHand.Position.Y.ToString(CultureInfo.InvariantCulture);
-            ZValueLeft.Text = leftHand.Position.Z.ToString(CultureInfo.InvariantCulture);
+            XValueLeft.Text = leftHand.Position.X.ToString("F", CultureInfo.InvariantCulture);
+            YValueLeft.Text = leftHand.Position.Y.ToString("F", CultureInfo.InvariantCulture);
+            ZValueLeft.Text = leftHand.Position.Z.ToString("F", CultureInfo.InvariantCulture);
 
             //Queremos el más lejano entonces el que tenga el valor más pequeño
             //será la mano que controlará el Mouse.
