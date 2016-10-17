@@ -1,42 +1,26 @@
-﻿using Microsoft.Kinect;
+﻿//#define ON_TOP //For debug only
+
+using Microsoft.Kinect;
 using Microsoft.Kinect.Toolkit;
+using Microsoft.Kinect.Toolkit.Controls;
 using System;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using KinectCursorController;
-using Coding4Fun.Kinect.Wpf;
-using System.Runtime.InteropServices;
-using System.Windows.Input;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using Microsoft.Kinect.Toolkit.Interaction;
-using System.ComponentModel;
 using KinectHelloWorld.SupportClasses;
-using System.Windows.Interop;
 
-namespace KinectHelloWorld
-{
+namespace KinectHelloWorld {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window {
-        public const float RAISED_THRESHOLD = 0.35f;
-        private const float SKELETON_MAX_X = 0.60f;
-        private const float SKELETON_MAX_Y = 0.40f;
         private KinectSensor sensor;
         private InteractionStream _interactionStream;
         private UserInfo[] _userInfos;
-        private bool isClick = false;
+        private bool[] isClicks;
+        private Skeleton activeSkeleton = null; 
         private KinectMouseController mouseController;
         private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
         private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
@@ -44,9 +28,13 @@ namespace KinectHelloWorld
         public MainWindow() {
             InitializeComponent();
             Loaded += MainWindowLoaded;
-            //For debug only
-            //Activated += MainWindowActive;
-            //Deactivated += MainWindowHidden;
+#if ON_TOP
+            StatusValue.Text = "Debugging!";
+            Activated += MainWindowActive;
+            Deactivated += MainWindowHidden;
+#else
+            StatusValue.Text = "Release";
+#endif
             mouseController = new KinectMouseController();
         }
 
@@ -57,6 +45,7 @@ namespace KinectHelloWorld
             kinectSensorChooser.Start();
 
             _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
+            isClicks = new bool[Enum.GetValues(typeof(HandType)).Length];
         }
 
         private void MainWindowActive(object sender, EventArgs e) {
@@ -127,7 +116,6 @@ namespace KinectHelloWorld
 
                     StatusValue.Text += " Connected";
                     CurrentVelocity.Text = string.Format("Current Velocity: {0}, {1}", mouseController.mouseSpeedX, mouseController.mouseSpeedY);
-
                 }
                 catch( InvalidOperationException ) {
                     StatusValue.Text = "Error";
@@ -136,9 +124,8 @@ namespace KinectHelloWorld
             }
 
         }
-        #region KinectFramesReady
+#region KinectFramesReady
         private void KinectSkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs args) {
-            //Por Skeleton nos referiremos de ahora en adelante a un jugador.
             Skeleton[] skeletons = new Skeleton[0];
             using(SkeletonFrame skeletonFrame = args.OpenSkeletonFrame() ) {
                 if( skeletonFrame != null ) {
@@ -158,18 +145,17 @@ namespace KinectHelloWorld
                 return;
 
             //Retorna el primer jugador que tenga tracking del Kinect.
-            Skeleton firstSkeleton;
             Skeleton[] trackedSkeletons = (from s in skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s).ToArray();
             NumberSkeletons.Text = string.Format("{0}, Non-Tracked: {1}", trackedSkeletons.Length.ToString(), skeletons.Length.ToString()) ;
             if(trackedSkeletons.Length == 0 ) {
                 return;
             }
 
-            firstSkeleton = trackedSkeletons[0];
+            activeSkeleton = trackedSkeletons[0];
             if(trackedSkeletons.Length > 1 ) {
                 for( int i = 1; i < trackedSkeletons.Length; i++ ) {
-                    if(KinectDistanceTools.FirstSkeletonIsCloserToSensor(ref trackedSkeletons[i], ref firstSkeleton, JointType.HipCenter) ) {
-                        firstSkeleton = trackedSkeletons[i];
+                    if(KinectDistanceTools.FirstSkeletonIsCloserToSensor(ref trackedSkeletons[i], ref activeSkeleton, JointType.HipCenter) ) {
+                        activeSkeleton = trackedSkeletons[i];
                     }
                 }
             }
@@ -182,11 +168,9 @@ namespace KinectHelloWorld
 
             //A partir de ahora ya sabemos que hay un jugador detectado por el Kinect y podemos obtener alguna
             //parte del cuerpo de referencia.
-
-            
-            Joint hip = firstSkeleton.Joints[JointType.HipCenter];
-            Joint rightHand = firstSkeleton.Joints[JointType.WristRight];
-            Joint leftHand = firstSkeleton.Joints[JointType.WristLeft];
+            Joint rightHand = activeSkeleton.Joints[JointType.WristRight];
+            Joint leftHand = activeSkeleton.Joints[JointType.WristLeft];
+            Joint head = activeSkeleton.Joints[JointType.Head];
 
             XValueRight.Text = rightHand.Position.X.ToString("F", CultureInfo.InvariantCulture);
             YValueRight.Text = rightHand.Position.Y.ToString("F", CultureInfo.InvariantCulture);
@@ -196,46 +180,53 @@ namespace KinectHelloWorld
             YValueLeft.Text = leftHand.Position.Y.ToString("F", CultureInfo.InvariantCulture);
             ZValueLeft.Text = leftHand.Position.Z.ToString("F", CultureInfo.InvariantCulture);
 
-            //Queremos el más lejano entonces el que tenga el valor más pequeño
-            //será la mano que controlará el Mouse.
+            //Checamos gestos para el control de la cámara del Kinect.
+            if( head.Position.Y < leftHand.Position.Y && head.Position.Y < rightHand.Position.Y ) {
+                Joint hip = activeSkeleton.Joints[JointType.HipCenter];
+            }
+
+            //Queremos la mano más cercana al sensor para que controle el mouse.
             if( KinectDistanceTools.FirstIsCloserToSensor( ref rightHand, ref leftHand )) {
                 RightRaised.Text = "Activada";
                 LeftRaised.Text = "Desactivado";
-                Vector2 result = mouseController.Move(ref rightHand, isClick);
-                MousePos.Text = string.Format("X: {0}, Y: {1}, Click: {2}", result.x, result.y, isClick ? "Sí" : "No");
+                Vector2 result = mouseController.Move(ref rightHand,  isClicks[(int)HandType.Right]);
+                MousePos.Text = string.Format("X: {0}, Y: {1}, Click: {2}", result.x, result.y, isClicks[(int) HandType.Right] ? "Sí" : "No");
             }
             else {
                 LeftRaised.Text = "Activada";
                 RightRaised.Text = "Desactivado";
-                Vector2 result = mouseController.Move(ref leftHand, isClick);
-                MousePos.Text = string.Format("X: {0}, Y: {1}, Click: {2}", result.x, result.y, isClick ? "Sí" : "No");
+                Vector2 result = mouseController.Move(ref leftHand, isClicks[(int) HandType.Left]);
+                MousePos.Text = string.Format("X: {0}, Y: {1}, Click: {2}", result.x, result.y, isClicks[(int) HandType.Left] ? "Sí" : "No");
             }
         }
 
         private void KinectInteractionFrameReady(object sender, InteractionFrameReadyEventArgs args) {
+            if(activeSkeleton == null ) {
+                return;
+            }
             using( var iaf = args.OpenInteractionFrame() ) { //dispose as soon as possible
                 if( iaf == null )
                     return;
                 iaf.CopyInteractionDataTo(_userInfos);
             }
 
-            foreach( var userInfo in _userInfos ) {
-                var userID = userInfo.SkeletonTrackingId;
-                if( userID == 0 )
-                    continue;
+            UserInfo userInfo = ( from u in _userInfos where u.SkeletonTrackingId == activeSkeleton.TrackingId select u ).FirstOrDefault();
 
-                var hands = userInfo.HandPointers;
-
-                if(hands.Count != 0) {
-                    foreach( var hand in hands ) {
-                        bool grip = hand.HandEventType == InteractionHandEventType.Grip;
-                        bool gripRelease = hand.HandEventType == InteractionHandEventType.GripRelease;
-                        AnalyzeGrip(grip, gripRelease);
-                    }
-                }
-            
+            if(userInfo == null ) {
+                return;
             }
+            
+            int userID = userInfo.SkeletonTrackingId;
 
+            var hands = userInfo.HandPointers;
+
+            if(hands.Count != 0) {
+                foreach( var hand in hands ) {
+                    bool grip = hand.HandEventType == InteractionHandEventType.Grip;
+                    bool gripRelease = hand.HandEventType == InteractionHandEventType.GripRelease;
+                    AnalyzeGrip(grip, gripRelease, ref isClicks[(int)hand.HandType]);
+                }
+            }
         }
 
         private void KinectDepthFrameReady(object sender, DepthImageFrameReadyEventArgs args) {
@@ -252,16 +243,15 @@ namespace KinectHelloWorld
                 }
             }
         }
-        #endregion
+#endregion
 
-        private void AnalyzeGrip(bool grip, bool gripRelease) {
+        private void AnalyzeGrip(bool grip, bool gripRelease, ref bool isClick) {
             if( gripRelease ) {
                 isClick = false;
             }
             else if( grip ) {
                 isClick = true;
             }
-
         }
 
         private void ApplyVelocity_Click(object sender, RoutedEventArgs e) {
