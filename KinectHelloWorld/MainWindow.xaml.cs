@@ -10,6 +10,8 @@ using System.Linq;
 using System.Windows;
 using Microsoft.Kinect.Toolkit.Interaction;
 using KinectHelloWorld.SupportClasses;
+using System.Windows.Controls;
+
 
 namespace KinectHelloWorld {
     /// <summary>
@@ -115,7 +117,8 @@ namespace KinectHelloWorld {
                     _interactionStream.InteractionFrameReady += KinectInteractionFrameReady;
 
                     StatusValue.Text += " Connected";
-                    CurrentVelocity.Text = string.Format("Current Velocity: {0}, {1}", mouseController.mouseSpeedX, mouseController.mouseSpeedY);
+                    SliderMotorAngle.Value = sensor.ElevationAngle;
+                    KinectAngle.Text = string.Format("Ángulo: {0}", sensor.ElevationAngle.ToString());
                 }
                 catch( InvalidOperationException ) {
                     StatusValue.Text = "Error";
@@ -146,7 +149,6 @@ namespace KinectHelloWorld {
 
             //Retorna el primer jugador que tenga tracking del Kinect.
             Skeleton[] trackedSkeletons = (from s in skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s).ToArray();
-            NumberSkeletons.Text = string.Format("{0}, Non-Tracked: {1}", trackedSkeletons.Length.ToString(), skeletons.Length.ToString()) ;
             if(trackedSkeletons.Length == 0 ) {
                 return;
             }
@@ -170,7 +172,6 @@ namespace KinectHelloWorld {
             //parte del cuerpo de referencia.
             Joint rightHand = activeSkeleton.Joints[JointType.WristRight];
             Joint leftHand = activeSkeleton.Joints[JointType.WristLeft];
-            Joint head = activeSkeleton.Joints[JointType.Head];
 
             XValueRight.Text = rightHand.Position.X.ToString("F", CultureInfo.InvariantCulture);
             YValueRight.Text = rightHand.Position.Y.ToString("F", CultureInfo.InvariantCulture);
@@ -179,11 +180,6 @@ namespace KinectHelloWorld {
             XValueLeft.Text = leftHand.Position.X.ToString("F", CultureInfo.InvariantCulture);
             YValueLeft.Text = leftHand.Position.Y.ToString("F", CultureInfo.InvariantCulture);
             ZValueLeft.Text = leftHand.Position.Z.ToString("F", CultureInfo.InvariantCulture);
-
-            //Checamos gestos para el control de la cámara del Kinect.
-            if( head.Position.Y < leftHand.Position.Y && head.Position.Y < rightHand.Position.Y ) {
-                Joint hip = activeSkeleton.Joints[JointType.HipCenter];
-            }
 
             //Queremos la mano más cercana al sensor para que controle el mouse.
             if( KinectDistanceTools.FirstIsCloserToSensor( ref rightHand, ref leftHand )) {
@@ -254,15 +250,33 @@ namespace KinectHelloWorld {
             }
         }
 
-        private void ApplyVelocity_Click(object sender, RoutedEventArgs e) {
-            int valueX, valueY;
-            if(int.TryParse(VelocityX.Text, out valueX) ) {
-                mouseController.mouseSpeedX = valueX;
+        private bool isDragging = false;
+        private void SliderMotorAngle_DragCompleted(object sender, RoutedEventArgs e) {
+            try {
+                sensor.ElevationAngle = (int) SliderMotorAngle.Value;
+                KinectAngle.Text = string.Format("Ángulo: {0}", sensor.ElevationAngle.ToString());
+            }catch (InvalidOperationException except){
+                SliderMotorAngle.Value = sensor.ElevationAngle;
             }
-            if( int.TryParse(VelocityY.Text, out valueY) ) {
-                mouseController.mouseSpeedY = valueY;
+            finally {
+                isDragging = false;
             }
-            CurrentVelocity.Text = string.Format("Current Velocity: {0}, {1}", mouseController.mouseSpeedX, mouseController.mouseSpeedY);
+        }
+
+        private void SliderMotorAngle_DragStarted(object sender, RoutedEventArgs e) {
+            isDragging = true;
+        }
+
+        private void SliderMotorAngle_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
+            if( !isDragging ) {
+                try {
+                    sensor.ElevationAngle = (int) ( (Slider) sender ).Value;
+                    KinectAngle.Text = string.Format("Ángulo: {0}", sensor.ElevationAngle.ToString());
+                }
+                catch( InvalidOperationException except ) {
+                   SliderMotorAngle.Value = sensor.ElevationAngle;
+                }
+            }
         }
     }
 }
