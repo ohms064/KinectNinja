@@ -1,9 +1,14 @@
 ﻿//#define ON_TOP //For debug only
+//#define TRAINING
+#define VIEW_CAMERA
 
 using Microsoft.Kinect;
 using Microsoft.Kinect.Toolkit;
 using Microsoft.Kinect.Toolkit.Controls;
 using System;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Drawing.Imaging;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -11,25 +16,40 @@ using System.Windows;
 using Microsoft.Kinect.Toolkit.Interaction;
 using KinectHelloWorld.SupportClasses;
 using System.Windows.Controls;
-
+using Emgu.CV;
+using Emgu.CV.Face;
+using Emgu.CV.UI;
+using Emgu.CV.Structure;
+using Emgu.Util;
+using System.Windows.Forms;
+using static Emgu.CV.Face.FaceRecognizer;
 
 namespace KinectHelloWorld {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window {
+
+        public const int WIDTH = 168, HEIGHT = 192;
         private KinectSensor sensor;
         private InteractionStream _interactionStream;
         private UserInfo[] _userInfos;
+        FaceRecognizer fr;
+        private CascadeClassifier classifier;
         private bool[] isClicks;
         private Skeleton activeSkeleton = null; 
         private KinectMouseController mouseController;
+#if VIEW_CAMERA
+        private ImageViewer imgViewer, grayImgViewer;
+#endif
         private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
         private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
+
 
         public MainWindow() {
             InitializeComponent();
             Loaded += MainWindowLoaded;
+            
 #if ON_TOP
             StatusValue.Text = "Debugging!";
             Activated += MainWindowActive;
@@ -38,9 +58,27 @@ namespace KinectHelloWorld {
             StatusValue.Text = "Release";
 #endif
             mouseController = new KinectMouseController();
+
+            classifier = new CascadeClassifier("Classifiers\\haarcascade_frontalface_alt2.xml");
         }
 
         private void MainWindowLoaded(object sender, RoutedEventArgs e) {
+#if VIEW_CAMERA
+            imgViewer = new ImageViewer();
+            grayImgViewer = new ImageViewer();
+            imgViewer.Show();
+            grayImgViewer.Show();
+#endif
+
+            fr = new FisherFaceRecognizer(0, 3500); //Recommended values in the docs.
+            fr.Load(TrainingWindow.TRAINING_PATH);
+#if TRAINING
+            TrainingWindow training = new TrainingWindow();
+            training.Show();
+
+            this.Close();
+#else
+
             KinectSensorChooser kinectSensorChooser = new KinectSensorChooser();
             kinectSensorChooser.KinectChanged += KinectSensorChooserKinectChanged;
             kinectChooser.KinectSensorChooser = kinectSensorChooser;
@@ -48,8 +86,10 @@ namespace KinectHelloWorld {
 
             _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
             isClicks = new bool[Enum.GetValues(typeof(HandType)).Length];
+#endif
         }
 
+#if ON_TOP
         private void MainWindowActive(object sender, EventArgs e) {
             this.Topmost = true;
         }
@@ -58,6 +98,7 @@ namespace KinectHelloWorld {
             this.Topmost = true;
             Activate();
         }
+#endif
 
         /// <summary>
         /// Función para inicializar el kinect, se ejecuta en el evento de que un Kinect se contecte o se inicie.
@@ -110,15 +151,19 @@ namespace KinectHelloWorld {
                     };
 
                     sensor.SkeletonStream.Enable(smoothingParam);
-                    sensor.SkeletonFrameReady += KinectSkeletonFrameReady;
+                    //sensor.SkeletonFrameReady += KinectSkeletonFrameReady;
                     sensor.DepthFrameReady += KinectDepthFrameReady;
 
                     _interactionStream = new InteractionStream(sensor, new InteractionClient());
-                    _interactionStream.InteractionFrameReady += KinectInteractionFrameReady;
+                    //_interactionStream.InteractionFrameReady += KinectInteractionFrameReady;
+
+                    sensor.ColorStream.Enable();
+                    sensor.ColorFrameReady += KinectColorFrameReady;
 
                     StatusValue.Text += " Connected";
                     SliderMotorAngle.Value = sensor.ElevationAngle;
                     KinectAngle.Text = string.Format("Ángulo: {0}", sensor.ElevationAngle.ToString());
+
                 }
                 catch( InvalidOperationException ) {
                     StatusValue.Text = "Error";
@@ -127,6 +172,7 @@ namespace KinectHelloWorld {
             }
 
         }
+
 #region KinectFramesReady
         private void KinectSkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs args) {
             Skeleton[] skeletons = new Skeleton[0];
@@ -238,6 +284,56 @@ namespace KinectHelloWorld {
                     // into a bad state.  Ignore the frame in that case.
                 }
             }
+        }
+
+        private void KinectColorFrameReady(object sender, ColorImageFrameReadyEventArgs args) {
+#if VIEW_CAMERA
+            using( ColorImageFrame colorFrame = args.OpenColorImageFrame() ) {
+                if(colorFrame != null ) {
+                    byte[] imgBytes = new byte[colorFrame.PixelDataLength];
+                    colorFrame.CopyPixelDataTo(imgBytes);
+                    Bitmap bmp = new Bitmap(colorFrame.Width, colorFrame.Height, PixelFormat.Format32bppRgb);
+                    BitmapData bmpData = bmp.LockBits(
+                        new Rectangle(0, 0, bmp.Width, bmp.Height), 
+                        ImageLockMode.WriteOnly, 
+                        bmp.PixelFormat);
+                    Marshal.Copy(imgBytes, 0, bmpData.Scan0, imgBytes.Length);
+                    bmp.UnlockBits(bmpData);
+
+                    Image<Bgr, byte> img = new Image<Bgr, byte>(bmp);
+
+                    Image<Gray, byte> img_greyscale = img.Convert<Gray, byte>();
+
+
+                    img_greyscale._EqualizeHist();
+
+                    Rectangle[] faces = classifier.DetectMultiScale(img_greyscale, 1.4, 4, new System.Drawing.Size(100, 100), new System.Drawing.Size(800, 800));
+                    int i = 0;
+                    foreach( Rectangle face in faces ) {
+                        img_greyscale.ROI = face;
+                        Image<Gray, byte> cropped = img_greyscale.Copy();
+                        cropped = cropped.Resize(WIDTH, HEIGHT, Emgu.CV.CvEnum.Inter.Linear);
+
+                        PredictionResult pr = fr.Predict(cropped);
+                        switch( pr.Label ) {
+                            case 0:
+                                img.Draw(face, new Bgr(Color.Blue), 4);
+                                break;
+                            case 1:
+                                img.Draw(face, new Bgr(Color.Crimson), 4);
+                                break;
+                            default:
+                                img.Draw(face, new Bgr(Color.Black), 4);
+                                break;
+                        }
+                    }
+                    img_greyscale.ROI = Rectangle.Empty;
+                    imgViewer.Image = img;
+                    grayImgViewer.Image = img_greyscale;
+
+                }
+            }
+#endif
         }
 #endregion
 

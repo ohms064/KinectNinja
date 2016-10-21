@@ -1,0 +1,26 @@
+﻿<Window x:Class="KinectHelloWorld.TrainingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:KinectHelloWorld"
+        mc:Ignorable="d"
+        Title="TrainingWindow" Height="278.303" Width="377.043">
+    <Grid>
+        <Button x:Name="LoadButton" Content="Save" HorizontalAlignment="Left" Margin="262,183,0,0" VerticalAlignment="Top" Width="75" Click="SaveData"/>
+        <Label x:Name="label" Content="Path:" HorizontalAlignment="Left" Margin="21,141,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label1" Content="Label" HorizontalAlignment="Left" Margin="19,105,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.786,-0.555"/>
+        <Label x:Name="label2" Content="New Training Data" HorizontalAlignment="Left" Margin="21,35,0,0" VerticalAlignment="Top" Height="56" Width="146" FontSize="16"/>
+        <TextBox x:Name="LabelValue" HorizontalAlignment="Left" Height="23" Margin="62,110,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="FilePathValue" HorizontalAlignment="Left" Height="23" Margin="62,143,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="217" IsEnabled="False"/>
+        <Button x:Name="FileButton" Content="Open" HorizontalAlignment="Left" Margin="284,143,0,0" VerticalAlignment="Top" Width="75" Click="OpenFile"/>
+        <Image x:Name="Photo" HorizontalAlignment="Left" Height="100" Margin="253,10,0,0" VerticalAlignment="Top" Width="100"/>
+        <TextBlock x:Name="LabelCurrent" HorizontalAlignment="Left" Margin="187,110,0,0" TextWrapping="Wrap" Text="/" VerticalAlignment="Top" Height="21" Width="66"/>
+        <RadioButton x:Name="SetAll" Content="Set All" HorizontalAlignment="Left" Margin="284,214,0,0" VerticalAlignment="Top" Height="20"/>
+        <Button x:Name="BNext" Content="Next" HorizontalAlignment="Left" Margin="173,183,0,0" VerticalAlignment="Top" Width="75" Click="BNext_Click"/>
+        <Button x:Name="BTrain" Content="Train" HorizontalAlignment="Left" Margin="83,183,0,0" VerticalAlignment="Top" Width="75" Click="BTrain_Click"/>
+        <TextBlock x:Name="TBFaces" HorizontalAlignment="Left" Margin="187,89,0,0" TextWrapping="Wrap" Text="Faces: " VerticalAlignment="Top" RenderTransformOrigin="-1.699,2.304"/>
+        <TextBlock x:Name="TBDimen" HorizontalAlignment="Left" Margin="262,110,0,0" TextWrapping="Wrap" Text="W: H:" VerticalAlignment="Top" Width="97"/>
+
+    </Grid>
+</Window>

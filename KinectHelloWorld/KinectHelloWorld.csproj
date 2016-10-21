@@ -39,6 +39,12 @@
       <HintPath>..\packages\Coding4Fun.Kinect.Wpf.1.7.0\lib\Coding4Fun.Kinect.Wpf.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Emgu.CV.UI">
+      <HintPath>..\..\..\..\..\..\..\Emgu\emgucv-windesktop 3.1.0.2282\bin\Emgu.CV.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="Emgu.CV.World">
+      <HintPath>..\..\..\..\..\..\..\Emgu\emgucv-windesktop 3.1.0.2282\bin\Emgu.CV.World.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Expression.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Coding4Fun.Kinect.Wpf.1.7.0\lib\Microsoft.Expression.Drawing.dll</HintPath>
       <Private>True</Private>
@@ -58,6 +64,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
@@ -77,10 +84,33 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="CustomControls\CustomSlider.cs" />
+    <Compile Include="SupportClasses\BitmapTools.cs" />
+    <Compile Include="SupportClasses\Drawing\PNM.cs" />
+    <Compile Include="SupportClasses\Drawing\PNMFactory.cs" />
+    <Compile Include="SupportClasses\Drawing\PNMReader\IPNMReader.cs" />
+    <Compile Include="SupportClasses\Drawing\PNMReader\PBMReader.cs" />
+    <Compile Include="SupportClasses\Drawing\PNMReader\PGMReader.cs" />
+    <Compile Include="SupportClasses\Drawing\PNMReader\PPMReader.cs" />
+    <Compile Include="SupportClasses\Drawing\PNMWriter\IPNMWriter.cs" />
+    <Compile Include="SupportClasses\Drawing\PNMWriter\PBMWriter.cs" />
+    <Compile Include="SupportClasses\Drawing\PNMWriter\PGMWriter.cs" />
+    <Compile Include="SupportClasses\Drawing\PNMWriter\PPMWriter.cs" />
+    <Compile Include="SupportClasses\IO\DataReader\ASCIIDataReader.cs" />
+    <Compile Include="SupportClasses\IO\DataReader\BinaryDataReader.cs" />
+    <Compile Include="SupportClasses\IO\DataReader\IPNMDataReader.cs" />
+    <Compile Include="SupportClasses\IO\DataWriter\ASCIIDataWriter.cs" />
+    <Compile Include="SupportClasses\IO\DataWriter\BinaryDataWriter.cs" />
+    <Compile Include="SupportClasses\IO\DataWriter\IPNMDataWriter.cs" />
     <Compile Include="SupportClasses\KinectDistanceTools.cs" />
     <Compile Include="SupportClasses\KinectMouseController.cs" />
+    <Compile Include="SupportClasses\PGM.cs" />
+    <Compile Include="SupportClasses\TrainingData.cs" />
     <Compile Include="SupportClasses\Vector2.cs" />
     <Compile Include="SupportClasses\Vector3.cs" />
+    <Compile Include="TrainingWindow.xaml.cs">
+      <DependentUpon>TrainingWindow.xaml</DependentUpon>
+    </Compile>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -90,11 +120,15 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ActiveClickWindow.cs" />
-    <Compile Include="InteractionClient.cs" />
+    <Compile Include="SupportClasses\InteractionClient.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="TrainingWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\NativeMethods.cs" />
@@ -125,6 +159,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

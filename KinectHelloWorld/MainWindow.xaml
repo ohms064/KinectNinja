@@ -33,14 +33,11 @@
         <TextBlock x:Name="RightRaised" HorizontalAlignment="Left" Margin="421,119,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Text="Val" FontSize="16"/>
         <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Margin="33,151,0,0" TextWrapping="Wrap" Text="Mouse Position:" VerticalAlignment="Top" FontSize="16"/>
         <TextBlock x:Name="MousePos" HorizontalAlignment="Left" Margin="166,151,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" Height="21" Width="257" FontSize="16"/>
-        <TextBlock x:Name="textBlock1" HorizontalAlignment="Left" Margin="33,188,0,0" TextWrapping="Wrap" Text="Velocity X:" VerticalAlignment="Top" Height="20" Width="76" FontSize="16"/>
-        <TextBlock x:Name="textBlock2" HorizontalAlignment="Left" Margin="234,187,0,0" TextWrapping="Wrap" Text="Velocity Y:" VerticalAlignment="Top" FontSize="16"/>
-        <TextBox x:Name="VelocityX" HorizontalAlignment="Left" Height="23" Margin="109,188,0,0" TextWrapping="Wrap" Text="15" VerticalAlignment="Top" Width="112" FontSize="16"/>
-        <TextBox x:Name="VelocityY" HorizontalAlignment="Left" Height="23" Margin="311,188,0,0" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="120" FontSize="16"/>
-        <Button x:Name="ApplyVelocity" Content="Apply Velocity" HorizontalAlignment="Left" Margin="311,227,0,0" VerticalAlignment="Top" Width="120" Height="25" ClickMode="Release" Click="ApplyVelocity_Click"/>
         <TextBlock x:Name="StatusValue" HorizontalAlignment="Left" Margin="261,48,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" FontSize="18"/>
-        <TextBlock x:Name="CurrentVelocity" HorizontalAlignment="Left" Margin="33,231,0,0" TextWrapping="Wrap" Text="Current Velocity:" VerticalAlignment="Top" FontSize="16" Width="255"/>
-        <TextBlock x:Name="CurrentVelocity_Copy" HorizontalAlignment="Left" Margin="31,257,0,0" TextWrapping="Wrap" Text="Tracked: " VerticalAlignment="Top" FontSize="16" Width="255"/>
-        <TextBlock x:Name="NumberSkeletons" HorizontalAlignment="Left" Margin="97,259,0,0" TextWrapping="Wrap" Text="Val" VerticalAlignment="Top" RenderTransformOrigin="6.452,3.458" Width="70" FontSize="14"/>
+        <Slider x:Name="SliderMotorAngle" HorizontalAlignment="Left" Margin="33,235,0,0" VerticalAlignment="Top" Width="428" Maximum="27" Minimum="-27" TickFrequency="1" Height="24" TickPlacement="BottomRight" 
+                Delay="500" Thumb.DragStarted="SliderMotorAngle_DragStarted" ValueChanged="SliderMotorAngle_ValueChanged"
+                IsSnapToTickEnabled="True" Thumb.DragCompleted="SliderMotorAngle_DragCompleted"/>
+        <Label x:Name="label" Content="Kinect Angle (Drag Only):&#xD;&#xA;" HorizontalAlignment="Left" Margin="31,193,0,0" VerticalAlignment="Top" Width="155"/>
+        <TextBlock x:Name="KinectAngle" HorizontalAlignment="Left" Margin="348,193,0,0" TextWrapping="Wrap" Text="Ángulo:" VerticalAlignment="Top" Height="21" Width="113"/>
     </Grid>
 </Window>
