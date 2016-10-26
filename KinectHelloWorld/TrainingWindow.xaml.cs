@@ -22,16 +22,35 @@ namespace KinectHelloWorld {
 
         private List<TrainingData> listdata;
         private TrainingData currentData;
-        private string[] paths;
+        private TrainingData[] paths;
         private int pathIndex;
+        private bool isEditingXML;
         private CascadeClassifier classifier;
         private const string IMAGES_PATH = "TrainingData\\data.xml";
         public const string TRAINING_PATH = "TrainingData\\training_faces.xml";
         private const int MAX_RANGE = 200;
-
+        public const int WIDTH = 100, HEIGHT = 100;
+        
         public TrainingWindow() {
             InitializeComponent();
+            isEditingXML = false;
             listdata = TrainingData.Deserialize(IMAGES_PATH);
+            CBInterpolation.ItemsSource = Enum.GetValues(typeof(Emgu.CV.CvEnum.Inter));
+            CBInterpolation.SelectedIndex = 0;
+            int male = 0, female = 0;
+            foreach(TrainingData data in listdata) {
+                switch( data.label ) {
+                    case 0:
+                        male++;
+                        break;
+                    case 1:
+                        female++;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            TBGenderCount.Text = string.Format("Male: {0} Female: {1}", male, female);
             currentData = new TrainingData();
             Photo.Stretch = Stretch.Fill;
             pathIndex = 0;
@@ -41,10 +60,10 @@ namespace KinectHelloWorld {
         private void SaveData(object sender, RoutedEventArgs e) {
             if( currentData.filePath == "" || currentData.filePath == null)
                 return;
-            if(SetAll.IsChecked == true && pathIndex == 0) {
+            if(SetAll.IsChecked == true && pathIndex == 0 && !isEditingXML) {
                 int parsedLabel = int.Parse(LabelValue.Text);
-                foreach(string path in paths ) {
-                    currentData = new TrainingData { label = parsedLabel, filePath = path };
+                foreach(TrainingData path in paths ) {
+                    currentData = new TrainingData { label = parsedLabel, filePath = path.filePath };
                     listdata.Add(currentData);
                 }
                 pathIndex = paths.Length - 1;
@@ -52,7 +71,12 @@ namespace KinectHelloWorld {
             }
             else {
                 currentData.label = int.Parse(LabelValue.Text);
-                listdata.Add(currentData);
+                if( isEditingXML ) {
+                    listdata[pathIndex] = currentData;
+                }
+                else {
+                    listdata.Add(currentData);
+                }
                 currentData = new TrainingData();
                 pathIndex++;
                 if( pathIndex < paths.Length ) {
@@ -67,20 +91,27 @@ namespace KinectHelloWorld {
         private void OpenFile(object sender, RoutedEventArgs e) {
             OpenFileDialog dlg = new OpenFileDialog();
             dlg.DefaultExt = "*.pgm";
-            dlg.Filter = "PGM Files (*.pgm)|*.pgm|JPEG Files (*.jpeg)|*.jpeg|PNG Files (*.png)|*.png|JPG Files (*.jpg)|*.jpg|GIF Files (*.gif)|*.gif";
+            //dlg.Filter = "PGM Files (*.pgm)|*.pgm|JPEG Files (*.jpeg)|*.jpeg|PNG Files (*.png)|*.png|JPG Files (*.jpg)|*.jpg|GIF Files (*.gif)|*.gif";
+            dlg.Filter = "Image Files (*.pgm, *.jpeg, *.png, *.jpg, *.gif)|*.pgm; *.jpeg; *.png; *.jpg; *.gif";
             dlg.Multiselect = true;
             bool? result = dlg.ShowDialog();
             if( result == true ) {
-                paths = dlg.FileNames;
+                paths = new TrainingData[dlg.FileNames.Length];
+                for(int i = 0; i < paths.Length; i++ ) {
+                    paths[i] = new TrainingData { filePath = dlg.FileNames[i], label = 0};
+                }
                 pathIndex = 0;
                 LabelCurrent.Text = string.Format("{0}/{1}", pathIndex + 1, paths.Length);
                 SetPathToWindow(paths[pathIndex]);
+                isEditingXML = false;
+                BDelete.IsEnabled = false;
             }
         }
 
-        private void SetPathToWindow(string path) {
-            FilePathValue.Text = path;
-            currentData.filePath = path;
+        private void SetPathToWindow(TrainingData path) {
+            FilePathValue.Text = path.filePath;
+            currentData.filePath = path.filePath;
+            LabelValue.Text = path.label.ToString();
             if( currentData.filePath.EndsWith("pgm") ) {
                 Bitmap bmp = PNM.ReadPNM(currentData.filePath) as Bitmap;
                 ColorImage imgDetec = new ColorImage(bmp);
@@ -90,7 +121,7 @@ namespace KinectHelloWorld {
                 }
                 TBFaces.Text = string.Format("Faces: {0}", faces.Length);
                 bmp = imgDetec.ToBitmap();
-                Photo.Source = bmp.ToBitmapSource();
+                Photo.Source = bmp .ToBitmapSource();
                 TBDimen.Text = string.Format("W: {0} H: {1}", bmp.Width, bmp.Height);
             }
             else {
@@ -120,7 +151,7 @@ namespace KinectHelloWorld {
 
 
         private void BTrain_Click(object sender, RoutedEventArgs e) {
-            FaceRecognizer fr = new FisherFaceRecognizer(0, 3500);
+            FaceRecognizer fr = new EigenFaceRecognizer();
             if( File.Exists(TRAINING_PATH) ){
                 fr.Load(TRAINING_PATH);
             }
@@ -143,6 +174,58 @@ namespace KinectHelloWorld {
                 fr.Train(trainingImgs.ToArray(), labels.ToArray());
             }
             fr.Save(TRAINING_PATH);
+        }
+
+        private void BPrevious_Click(object sender, RoutedEventArgs e) {
+            if( paths != null && pathIndex > 0 ) {
+                pathIndex--;
+                SetPathToWindow(paths[pathIndex]);
+                LabelCurrent.Text = string.Format("{0}/{1}", pathIndex + 1, paths.Length);
+            }
+        }
+
+        private void BXML_Click(object sender, RoutedEventArgs e) {
+            paths = listdata.ToArray();
+            pathIndex = 0;
+            LabelCurrent.Text = string.Format("{0}/{1}", pathIndex + 1, paths.Length);
+            SetPathToWindow(paths[pathIndex]);
+            isEditingXML = true;
+            BDelete.IsEnabled = true;
+        }
+
+        private void BPredict_Click(object sender, RoutedEventArgs e) {
+            FaceRecognizer fr = new EigenFaceRecognizer();
+            if( !File.Exists(TRAINING_PATH) || currentData.filePath == null || !File.Exists(currentData.filePath))
+                return;
+            fr.Load(TRAINING_PATH);
+            GrayImage sample = new GrayImage(currentData.filePath);
+            sample = sample.Resize(WIDTH, HEIGHT, (Emgu.CV.CvEnum.Inter) CBInterpolation.SelectedItem);
+            FaceRecognizer.PredictionResult prediction = fr.Predict(sample);
+            TBPredict.Text = string.Format("Res: {0}\nD: {1:0.##}", prediction.Label.ToString(), prediction.Distance);
+            switch( prediction.Label ) {
+                case 0:
+                    TBPredict.Foreground = System.Windows.Media.Brushes.Blue;
+                    break;
+                case 1:
+                    TBPredict.Foreground = System.Windows.Media.Brushes.Crimson;
+                    break;
+                default:
+                    TBPredict.Foreground = System.Windows.Media.Brushes.Black;
+                    break;
+            }
+            
+
+        }
+
+        private void BDelete_Click(object sender, RoutedEventArgs e) {
+            if( !isEditingXML )
+                return;
+            listdata.RemoveAt(pathIndex);
+            paths = listdata.ToArray();
+            if(pathIndex >= paths.Length ) {
+
+            }
+            TrainingData.Serialize(IMAGES_PATH, listdata);
         }
     }
 }

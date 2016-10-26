@@ -1,6 +1,9 @@
 ﻿//#define ON_TOP //For debug only
 //#define TRAINING
+#define MOUSE_CONTROL
 #define VIEW_CAMERA
+//#define BY_FACE_RECOGNITION
+#define BY_JOINT_RECOGNITION
 
 using Microsoft.Kinect;
 using Microsoft.Kinect.Toolkit;
@@ -30,11 +33,12 @@ namespace KinectHelloWorld {
     /// </summary>
     public partial class MainWindow : Window {
 
-        public const int WIDTH = 168, HEIGHT = 192;
+        public const int WIDTH = 100, HEIGHT = 100, HALF_WIDTH = 50, HALF_HEIGHT = 50;
+        private const int CROPPED_WIDTH = 500, CROPPED_HEIGHT = 400, CROPPED_X = 30, CROPPED_Y = 50;
         private KinectSensor sensor;
         private InteractionStream _interactionStream;
         private UserInfo[] _userInfos;
-        FaceRecognizer fr;
+        public FaceRecognizer fr;
         private CascadeClassifier classifier;
         private bool[] isClicks;
         private Skeleton activeSkeleton = null; 
@@ -44,7 +48,6 @@ namespace KinectHelloWorld {
 #endif
         private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
         private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
-
 
         public MainWindow() {
             InitializeComponent();
@@ -68,10 +71,9 @@ namespace KinectHelloWorld {
             grayImgViewer = new ImageViewer();
             imgViewer.Show();
             grayImgViewer.Show();
-#endif
-
-            fr = new FisherFaceRecognizer(0, 3500); //Recommended values in the docs.
+            fr = new EigenFaceRecognizer(14, 123);
             fr.Load(TrainingWindow.TRAINING_PATH);
+#endif
 #if TRAINING
             TrainingWindow training = new TrainingWindow();
             training.Show();
@@ -149,16 +151,18 @@ namespace KinectHelloWorld {
                         smoothingParam.JitterRadius = 0.1f;
                         smoothingParam.MaxDeviationRadius = 0.1f;
                     };
-
                     sensor.SkeletonStream.Enable(smoothingParam);
-                    //sensor.SkeletonFrameReady += KinectSkeletonFrameReady;
+                    sensor.SkeletonFrameReady += KinectSkeletonFrameReady;
                     sensor.DepthFrameReady += KinectDepthFrameReady;
-
+#if MOUSE_CONTROL
                     _interactionStream = new InteractionStream(sensor, new InteractionClient());
-                    //_interactionStream.InteractionFrameReady += KinectInteractionFrameReady;
+                    _interactionStream.InteractionFrameReady += KinectInteractionFrameReady;
+#endif
 
+#if VIEW_CAMERA
                     sensor.ColorStream.Enable();
                     sensor.ColorFrameReady += KinectColorFrameReady;
+#endif
 
                     StatusValue.Text += " Connected";
                     SliderMotorAngle.Value = sensor.ElevationAngle;
@@ -190,14 +194,16 @@ namespace KinectHelloWorld {
                 }
             }
 
-            if( skeletons.Length == 0 )
+            if( skeletons.Length == 0 ) {
                 return;
+            }
 
             //Retorna el primer jugador que tenga tracking del Kinect.
             Skeleton[] trackedSkeletons = (from s in skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s).ToArray();
             if(trackedSkeletons.Length == 0 ) {
                 return;
             }
+
 
             activeSkeleton = trackedSkeletons[0];
             if(trackedSkeletons.Length > 1 ) {
@@ -208,6 +214,7 @@ namespace KinectHelloWorld {
                 }
             }
 
+#if MOUSE_CONTROL
             /*
              * El sistema de referencia que ocupa el kinect tiene como origen la posición
              * del sensor, es decir que eje Z apunta al frente del kinect, el eje X el positivo estád
@@ -240,8 +247,10 @@ namespace KinectHelloWorld {
                 Vector2 result = mouseController.Move(ref leftHand, isClicks[(int) HandType.Left]);
                 MousePos.Text = string.Format("X: {0}, Y: {1}, Click: {2}", result.x, result.y, isClicks[(int) HandType.Left] ? "Sí" : "No");
             }
+#endif
         }
 
+#if MOUSE_CONTROL
         private void KinectInteractionFrameReady(object sender, InteractionFrameReadyEventArgs args) {
             if(activeSkeleton == null ) {
                 return;
@@ -270,7 +279,7 @@ namespace KinectHelloWorld {
                 }
             }
         }
-
+#endif
         private void KinectDepthFrameReady(object sender, DepthImageFrameReadyEventArgs args) {
             using( DepthImageFrame depthFrame = args.OpenDepthImageFrame() ) {
                 if( depthFrame == null )
@@ -286,8 +295,8 @@ namespace KinectHelloWorld {
             }
         }
 
-        private void KinectColorFrameReady(object sender, ColorImageFrameReadyEventArgs args) {
 #if VIEW_CAMERA
+        private void KinectColorFrameReady(object sender, ColorImageFrameReadyEventArgs args) {
             using( ColorImageFrame colorFrame = args.OpenColorImageFrame() ) {
                 if(colorFrame != null ) {
                     byte[] imgBytes = new byte[colorFrame.PixelDataLength];
@@ -303,38 +312,85 @@ namespace KinectHelloWorld {
                     Image<Bgr, byte> img = new Image<Bgr, byte>(bmp);
 
                     Image<Gray, byte> img_greyscale = img.Convert<Gray, byte>();
+                    //Por medio del classifier.
 
+                    //Cortamos la imagen donde encontraremos caras para minimizar cálculos
+                    img_greyscale.ROI = new Rectangle(CROPPED_X, CROPPED_Y, CROPPED_WIDTH, CROPPED_HEIGHT); 
+
+                    img_greyscale = img_greyscale.Copy();
 
                     img_greyscale._EqualizeHist();
-
+#if BY_FACE_RECOGNITION
                     Rectangle[] faces = classifier.DetectMultiScale(img_greyscale, 1.4, 4, new System.Drawing.Size(100, 100), new System.Drawing.Size(800, 800));
                     int i = 0;
                     foreach( Rectangle face in faces ) {
-                        img_greyscale.ROI = face;
+                        Rectangle realFace = face;
+                        realFace.X += 30;
+                        realFace.Y += 50;
+                        img_greyscale.ROI = realFace;
+                        
                         Image<Gray, byte> cropped = img_greyscale.Copy();
                         cropped = cropped.Resize(WIDTH, HEIGHT, Emgu.CV.CvEnum.Inter.Linear);
 
                         PredictionResult pr = fr.Predict(cropped);
                         switch( pr.Label ) {
                             case 0:
-                                img.Draw(face, new Bgr(Color.Blue), 4);
+                                img.Draw(realFace, new Bgr(Color.Blue), 4);
                                 break;
                             case 1:
-                                img.Draw(face, new Bgr(Color.Crimson), 4);
+                                img.Draw(realFace, new Bgr(Color.Crimson), 4);
                                 break;
                             default:
-                                img.Draw(face, new Bgr(Color.Black), 4);
+                                img.Draw(realFace, new Bgr(Color.Black), 4);
                                 break;
                         }
                     }
+#endif
+#if BY_JOINT_RECOGNITION
+                    //Por medio del Skeleton.
+                    if( activeSkeleton != null ) {
+                        Joint head = activeSkeleton.Joints[JointType.Head];
+                        ColorImagePoint headPoint =  sensor.CoordinateMapper.MapSkeletonPointToColorPoint(head.Position, ColorImageFormat.RgbResolution640x480Fps30);
+
+                        Rectangle rectHead = new Rectangle(
+                            (int) headPoint.X - HALF_WIDTH,
+                            (int) headPoint.Y - HALF_HEIGHT,
+                            WIDTH,
+                            HEIGHT);
+                        img_greyscale.ROI = rectHead;
+                        Image<Gray, byte> cropped = img_greyscale.Copy();
+                        cropped = cropped.Resize(WIDTH, HEIGHT, Emgu.CV.CvEnum.Inter.Linear);
+                        try {
+                            PredictionResult pr = fr.Predict(cropped);
+                            switch( pr.Label ) {
+                                case 0:
+                                    img.Draw(rectHead, new Bgr(Color.Blue), 4);
+                                    break;
+                                case 1:
+                                    img.Draw(rectHead, new Bgr(Color.Crimson), 4);
+                                    break;
+                                default:
+                                    img.Draw(rectHead, new Bgr(Color.Black), 4);
+                                    break;
+                            }
+                        }
+                        catch {
+                            //Ignoramos errores.
+                        }
+                        
+                    }
+#endif
                     img_greyscale.ROI = Rectangle.Empty;
                     imgViewer.Image = img;
                     grayImgViewer.Image = img_greyscale;
 
+
                 }
             }
-#endif
+
         }
+#endif
+        
 #endregion
 
         private void AnalyzeGrip(bool grip, bool gripRelease, ref bool isClick) {
