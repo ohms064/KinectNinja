@@ -39,8 +39,9 @@ namespace KinectHelloWorld.SupportClasses {
         public List<Rectangle> GetFaces(ColorImage img, Rectangle areaOfInterest) {
             GrayImage grayScaleImage = img.Convert<Gray, byte>().Crop(areaOfInterest);
             grayScaleImage._EqualizeHist();
-
-            viewer.Image = grayScaleImage;
+            if( viewer != null ) {
+                viewer.Image = grayScaleImage;
+            }
 
             Rectangle[] faces = classifier.DetectMultiScale(grayScaleImage, 1.4, 4, new Size(50, 50), new Size(400, 400));
             List<PredictionResult> listPredict = new List<PredictionResult>();

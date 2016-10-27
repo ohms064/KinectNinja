@@ -30,7 +30,7 @@
         <Button x:Name="BXML" Content="View XML" HorizontalAlignment="Left" Margin="92,236,0,0" VerticalAlignment="Top" Width="75" Click="BXML_Click" Grid.ColumnSpan="3"/>
         <Button x:Name="BPrevious" Content="Previous" HorizontalAlignment="Left" Margin="38,208,0,0" VerticalAlignment="Top" Width="75" Click="BPrevious_Click" Grid.ColumnSpan="2" Grid.Column="2"/>
         <Button x:Name="BPredict" Content="Predict" HorizontalAlignment="Left" Margin="3,183,0,0" VerticalAlignment="Top" Width="75" Click="BPredict_Click"/>
-        <TextBlock x:Name="TBPredict" HorizontalAlignment="Left" Margin="3,214,0,0" TextWrapping="Wrap" Text="Res:" VerticalAlignment="Top" Width="75" Height="37"/>
+        <TextBlock x:Name="TBStatus" HorizontalAlignment="Left" Margin="3,214,0,0" TextWrapping="Wrap" Text="Res:" VerticalAlignment="Top" Width="75" Height="37"/>
         <Button x:Name="BDelete" Grid.ColumnSpan="3" Content="Delete" HorizontalAlignment="Left" Margin="92,264,0,0" VerticalAlignment="Top" Width="75" Click="BDelete_Click"/>
         <ComboBox x:Name="CBInterpolation" HorizontalAlignment="Left" Margin="92,181,0,0" VerticalAlignment="Top" Width="120" Grid.ColumnSpan="4"/>
         <ComboBox x:Name="CBGender" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="62,109,0,0" VerticalAlignment="Top" Width="120"/>

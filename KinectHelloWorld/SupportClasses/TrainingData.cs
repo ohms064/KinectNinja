@@ -25,8 +25,15 @@ namespace KinectHelloWorld.SupportClasses {
                 return new List<TrainingData>();
             StreamReader stream = new StreamReader(path);
             List<TrainingData> salida;
-            salida = ser.Deserialize(stream) as List<TrainingData>;
-            stream.Close();
+            try {
+                salida = ser.Deserialize(stream) as List<TrainingData>;
+            }
+            catch( System.InvalidOperationException ) {
+                return new List<TrainingData>();
+            }
+            finally {
+                stream.Close();
+            }
             return salida;
         }
     }

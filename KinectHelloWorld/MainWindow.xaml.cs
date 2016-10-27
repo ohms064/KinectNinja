@@ -1,7 +1,7 @@
 ﻿//#define ON_TOP //For debug only
-//#define TRAINING
+#define TRAINING
 //#define MOUSE_CONTROL
-#define VIEW_CAMERA
+//#define VIEW_CAMERA
 
 using Emgu.CV;
 using Emgu.CV.Face;
@@ -28,7 +28,7 @@ namespace KinectHelloWorld {
 
         public const int WIDTH = 100, HEIGHT = 100, HALF_WIDTH = 50, HALF_HEIGHT = 50;
         private const int CROPPED_WIDTH = 500, CROPPED_HEIGHT = 400, CROPPED_X = 30, CROPPED_Y = 50;
-        private Rectangle areaOfInterest;
+        public static Rectangle areaOfInterest;
         private const string CLASSIFIER_PATH = "Classifiers\\haarcascade_frontalface_alt2.xml";
         private KinectSensor sensor;
 #if MOUSE_CONTROL
@@ -73,7 +73,9 @@ namespace KinectHelloWorld {
                 faceRecognizer = fr,
                 recognizerWidth = WIDTH,
                 recognizerHeight = HEIGHT,
+#if VIEW_CAMERA
                 viewer = grayImgViewer,
+#endif
                 threshold = 100D
             };
             areaOfInterest = new Rectangle(CROPPED_X, CROPPED_Y, CROPPED_WIDTH, CROPPED_HEIGHT);

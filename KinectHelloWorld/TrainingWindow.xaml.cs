@@ -25,12 +25,12 @@ namespace KinectHelloWorld {
         private TrainingData[] paths;
         private int pathIndex;
         private bool isEditingXML;
-        private CascadeClassifier classifier;
+        private GenderClassifier _genderClassifier;
         private const string IMAGES_PATH = "TrainingData\\data.xml";
         public const string TRAINING_PATH = "TrainingData\\training_faces.xml";
         private const int MAX_RANGE = 200;
-        public const int WIDTH = 100, HEIGHT = 100;
-        
+        int male = 0, female = 0;
+
         public TrainingWindow() {
             InitializeComponent();
             isEditingXML = false;
@@ -39,7 +39,6 @@ namespace KinectHelloWorld {
             CBInterpolation.SelectedIndex = 0;
             CBGender.ItemsSource = Enum.GetValues(typeof(GenderEnum));
             CBGender.SelectedIndex = 0;
-            int male = 0, female = 0;
             foreach(TrainingData data in listdata) {
                 switch( data.label ) {
                     case GenderEnum.MALE:
@@ -56,7 +55,17 @@ namespace KinectHelloWorld {
             currentData = new TrainingData();
             Photo.Stretch = Stretch.Fill;
             pathIndex = 0;
-            classifier = new CascadeClassifier("Classifiers\\haarcascade_frontalface_alt2.xml");
+            FaceRecognizer fr = new EigenFaceRecognizer();
+            if( !File.Exists(TRAINING_PATH) && currentData.filePath == null && !File.Exists(currentData.filePath) ) {
+                fr.Load(TRAINING_PATH);
+            }
+            _genderClassifier = new GenderClassifier {
+                classifier = new CascadeClassifier("Classifiers\\haarcascade_frontalface_alt2.xml"),
+                faceRecognizer = fr,
+                recognizerHeight = MainWindow.HEIGHT,
+                recognizerWidth = MainWindow.WIDTH,
+                threshold = 100
+            };            
         }
 
         private void SaveData(object sender, RoutedEventArgs e) {
@@ -75,9 +84,27 @@ namespace KinectHelloWorld {
                 currentData.label = (GenderEnum) CBGender.SelectedItem;
                 if( isEditingXML ) {
                     listdata[pathIndex] = currentData;
+                    switch( currentData.label ) {
+                        case GenderEnum.FEMALE:
+                            male--;
+                            female++;
+                            break;
+                        case GenderEnum.MALE:
+                            male++;
+                            female--;
+                            break;
+                    }
                 }
                 else {
                     listdata.Add(currentData);
+                    switch( currentData.label ) {
+                        case GenderEnum.FEMALE:
+                            female++;
+                            break;
+                        case GenderEnum.MALE:
+                            male++;
+                            break;
+                    }
                 }
                 currentData = new TrainingData();
                 pathIndex++;
@@ -88,6 +115,7 @@ namespace KinectHelloWorld {
             }
             Photo.Source = null;
             TrainingData.Serialize(IMAGES_PATH, listdata);
+            TBGenderCount.Text = string.Format("Male: {0} Female: {1}", male, female);
         }
 
         private void OpenFile(object sender, RoutedEventArgs e) {
@@ -117,11 +145,11 @@ namespace KinectHelloWorld {
             if( currentData.filePath.EndsWith("pgm") ) {
                 Bitmap bmp = PNM.ReadPNM(currentData.filePath) as Bitmap;
                 ColorImage imgDetec = new ColorImage(bmp);
-                Rectangle[] faces = classifier.DetectMultiScale(imgDetec, 1.4, 4, new System.Drawing.Size(100, 100), new System.Drawing.Size(800, 800));
+                List<Rectangle> faces = _genderClassifier.GetFaces(imgDetec, MainWindow.areaOfInterest);
                 foreach(Rectangle face in faces ) {
                     imgDetec.Draw(face, new Emgu.CV.Structure.Bgr(System.Drawing.Color.AliceBlue), 1);
                 }
-                TBFaces.Text = string.Format("Faces: {0}", faces.Length);
+                TBFaces.Text = string.Format("Faces: {0}", faces.Count);
                 bmp = imgDetec.ToBitmap();
                 Photo.Source = bmp .ToBitmapSource();
                 TBDimen.Text = string.Format("W: {0} H: {1}", bmp.Width, bmp.Height);
@@ -132,11 +160,11 @@ namespace KinectHelloWorld {
                 bi3.UriSource = new Uri(currentData.filePath, UriKind.Absolute);
                 bi3.EndInit();
                 ColorImage imgDetec = new ColorImage(bi3.ToBitmap());
-                Rectangle[] faces = classifier.DetectMultiScale(imgDetec, 1.4, 4, new System.Drawing.Size(100, 100), new System.Drawing.Size(800, 800));
+                List<Rectangle> faces = _genderClassifier.GetFaces(imgDetec, MainWindow.areaOfInterest);
                 foreach( Rectangle face in faces ) {
                     imgDetec.Draw(face, new Emgu.CV.Structure.Bgr(System.Drawing.Color.AliceBlue), 1);
                 }
-                TBFaces.Text = string.Format("Faces: {0}", faces.Length);
+                TBFaces.Text = string.Format("Faces: {0}", faces.Count);
                 bi3 = imgDetec.ToBitmap().ToBitmapImage();
                 Photo.Source = bi3;
                 TBDimen.Text = string.Format("W: {0} H: {1}", (int) bi3.Width, (int) bi3.Height);
@@ -153,10 +181,6 @@ namespace KinectHelloWorld {
 
 
         private void BTrain_Click(object sender, RoutedEventArgs e) {
-            FaceRecognizer fr = new EigenFaceRecognizer();
-            if( File.Exists(TRAINING_PATH) ){
-                fr.Load(TRAINING_PATH);
-            }
             List<GrayImage> trainingImgs = new List<GrayImage>();
             List<int> labels = new List<int>();
             pathIndex = 0;
@@ -173,9 +197,10 @@ namespace KinectHelloWorld {
                     labels.Add((int)listdata[pathIndex].label);
                     pathIndex++;
                 }
-                fr.Train(trainingImgs.ToArray(), labels.ToArray());
+                _genderClassifier.faceRecognizer.Train(trainingImgs.ToArray(), labels.ToArray());
             }
-            fr.Save(TRAINING_PATH);
+            _genderClassifier.faceRecognizer.Save(TRAINING_PATH);
+            TBStatus.Text = "Trained!";
         }
 
         private void BPrevious_Click(object sender, RoutedEventArgs e) {
@@ -196,23 +221,19 @@ namespace KinectHelloWorld {
         }
 
         private void BPredict_Click(object sender, RoutedEventArgs e) {
-            FaceRecognizer fr = new EigenFaceRecognizer();
-            if( !File.Exists(TRAINING_PATH) || currentData.filePath == null || !File.Exists(currentData.filePath))
-                return;
-            fr.Load(TRAINING_PATH);
             GrayImage sample = new GrayImage(currentData.filePath);
-            sample = sample.Resize(WIDTH, HEIGHT, (Emgu.CV.CvEnum.Inter) CBInterpolation.SelectedItem);
-            FaceRecognizer.PredictionResult prediction = fr.Predict(sample);
-            TBPredict.Text = string.Format("Res: {0}\nD: {1:0.##}", prediction.Label.ToString(), prediction.Distance);
+            sample = sample.Resize(MainWindow.WIDTH, MainWindow.HEIGHT, (Emgu.CV.CvEnum.Inter) CBInterpolation.SelectedItem);
+            FaceRecognizer.PredictionResult prediction = _genderClassifier.faceRecognizer.Predict(sample);
+            TBStatus.Text = string.Format("Res: {0}\nD: {1:0.##}", prediction.Label.ToString(), prediction.Distance);
             switch( prediction.Label ) {
                 case 0:
-                    TBPredict.Foreground = System.Windows.Media.Brushes.Blue;
+                    TBStatus.Foreground = System.Windows.Media.Brushes.Blue;
                     break;
                 case 1:
-                    TBPredict.Foreground = System.Windows.Media.Brushes.Crimson;
+                    TBStatus.Foreground = System.Windows.Media.Brushes.Crimson;
                     break;
                 default:
-                    TBPredict.Foreground = System.Windows.Media.Brushes.Black;
+                    TBStatus.Foreground = System.Windows.Media.Brushes.Black;
                     break;
             }
             
@@ -225,8 +246,10 @@ namespace KinectHelloWorld {
             listdata.RemoveAt(pathIndex);
             paths = listdata.ToArray();
             if(pathIndex >= paths.Length ) {
-
+                pathIndex = paths.Length - 1;
             }
+            currentData = paths[pathIndex];
+            SetPathToWindow(currentData);
             TrainingData.Serialize(IMAGES_PATH, listdata);
         }
     }
