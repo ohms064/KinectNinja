@@ -39,5 +39,6 @@
                 IsSnapToTickEnabled="True" Thumb.DragCompleted="SliderMotorAngle_DragCompleted"/>
         <Label x:Name="label" Content="Kinect Angle (Drag Only):&#xD;&#xA;" HorizontalAlignment="Left" Margin="31,193,0,0" VerticalAlignment="Top" Width="155"/>
         <TextBlock x:Name="KinectAngle" HorizontalAlignment="Left" Margin="348,193,0,0" TextWrapping="Wrap" Text="Ángulo:" VerticalAlignment="Top" Height="21" Width="113"/>
+        <TextBlock x:Name="TBPlayerStatus" HorizontalAlignment="Left" Margin="42,278,0,0" TextWrapping="Wrap" Text="PlayerStatus" VerticalAlignment="Top"/>
     </Grid>
 </Window>

@@ -17,7 +17,6 @@
         <Label x:Name="label" Content="Path:" HorizontalAlignment="Left" Margin="21,141,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label1" Content="Label" HorizontalAlignment="Left" Margin="19,105,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.786,-0.555"/>
         <Label x:Name="label2" Content="New Training Data" HorizontalAlignment="Left" Margin="21,35,0,0" VerticalAlignment="Top" Height="35" Width="146" FontSize="16" Grid.ColumnSpan="3"/>
-        <TextBox x:Name="LabelValue" HorizontalAlignment="Left" Height="23" Margin="62,110,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Grid.ColumnSpan="3"/>
         <TextBox x:Name="FilePathValue" HorizontalAlignment="Left" Height="23" Margin="62,143,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="217" IsEnabled="False" Grid.ColumnSpan="4"/>
         <Button x:Name="FileButton" Content="Open" HorizontalAlignment="Left" Margin="84,143,0,0" VerticalAlignment="Top" Width="75" Click="OpenFile" Grid.Column="3"/>
         <Image x:Name="Photo" HorizontalAlignment="Left" Height="100" Margin="53,10,0,0" VerticalAlignment="Top" Width="100" Grid.Column="3"/>
@@ -34,6 +33,7 @@
         <TextBlock x:Name="TBPredict" HorizontalAlignment="Left" Margin="3,214,0,0" TextWrapping="Wrap" Text="Res:" VerticalAlignment="Top" Width="75" Height="37"/>
         <Button x:Name="BDelete" Grid.ColumnSpan="3" Content="Delete" HorizontalAlignment="Left" Margin="92,264,0,0" VerticalAlignment="Top" Width="75" Click="BDelete_Click"/>
         <ComboBox x:Name="CBInterpolation" HorizontalAlignment="Left" Margin="92,181,0,0" VerticalAlignment="Top" Width="120" Grid.ColumnSpan="4"/>
+        <ComboBox x:Name="CBGender" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="62,109,0,0" VerticalAlignment="Top" Width="120"/>
 
     </Grid>
 </Window>

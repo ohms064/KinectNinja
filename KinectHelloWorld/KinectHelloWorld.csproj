@@ -86,6 +86,7 @@
     </ApplicationDefinition>
     <Compile Include="CustomControls\CustomSlider.cs" />
     <Compile Include="SupportClasses\BitmapTools.cs" />
+    <Compile Include="SupportClasses\ClassificationEnum.cs" />
     <Compile Include="SupportClasses\Drawing\PNM.cs" />
     <Compile Include="SupportClasses\Drawing\PNMFactory.cs" />
     <Compile Include="SupportClasses\Drawing\PNMReader\IPNMReader.cs" />
@@ -96,6 +97,9 @@
     <Compile Include="SupportClasses\Drawing\PNMWriter\PBMWriter.cs" />
     <Compile Include="SupportClasses\Drawing\PNMWriter\PGMWriter.cs" />
     <Compile Include="SupportClasses\Drawing\PNMWriter\PPMWriter.cs" />
+    <Compile Include="SupportClasses\FramesReady.cs" />
+    <Compile Include="SupportClasses\GenderClassifier.cs" />
+    <Compile Include="SupportClasses\ImageTools.cs" />
     <Compile Include="SupportClasses\IO\DataReader\ASCIIDataReader.cs" />
     <Compile Include="SupportClasses\IO\DataReader\BinaryDataReader.cs" />
     <Compile Include="SupportClasses\IO\DataReader\IPNMDataReader.cs" />

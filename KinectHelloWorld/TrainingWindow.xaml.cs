@@ -37,13 +37,15 @@ namespace KinectHelloWorld {
             listdata = TrainingData.Deserialize(IMAGES_PATH);
             CBInterpolation.ItemsSource = Enum.GetValues(typeof(Emgu.CV.CvEnum.Inter));
             CBInterpolation.SelectedIndex = 0;
+            CBGender.ItemsSource = Enum.GetValues(typeof(GenderEnum));
+            CBGender.SelectedIndex = 0;
             int male = 0, female = 0;
             foreach(TrainingData data in listdata) {
                 switch( data.label ) {
-                    case 0:
+                    case GenderEnum.MALE:
                         male++;
                         break;
-                    case 1:
+                    case GenderEnum.FEMALE:
                         female++;
                         break;
                     default:
@@ -61,7 +63,7 @@ namespace KinectHelloWorld {
             if( currentData.filePath == "" || currentData.filePath == null)
                 return;
             if(SetAll.IsChecked == true && pathIndex == 0 && !isEditingXML) {
-                int parsedLabel = int.Parse(LabelValue.Text);
+                GenderEnum parsedLabel = (GenderEnum)CBGender.SelectedItem;
                 foreach(TrainingData path in paths ) {
                     currentData = new TrainingData { label = parsedLabel, filePath = path.filePath };
                     listdata.Add(currentData);
@@ -70,7 +72,7 @@ namespace KinectHelloWorld {
                 LabelCurrent.Text = string.Format("{0}/{1}", pathIndex + 1, paths.Length);
             }
             else {
-                currentData.label = int.Parse(LabelValue.Text);
+                currentData.label = (GenderEnum) CBGender.SelectedItem;
                 if( isEditingXML ) {
                     listdata[pathIndex] = currentData;
                 }
@@ -111,7 +113,7 @@ namespace KinectHelloWorld {
         private void SetPathToWindow(TrainingData path) {
             FilePathValue.Text = path.filePath;
             currentData.filePath = path.filePath;
-            LabelValue.Text = path.label.ToString();
+            CBGender.SelectedValue = path.label;
             if( currentData.filePath.EndsWith("pgm") ) {
                 Bitmap bmp = PNM.ReadPNM(currentData.filePath) as Bitmap;
                 ColorImage imgDetec = new ColorImage(bmp);
@@ -168,7 +170,7 @@ namespace KinectHelloWorld {
                         bmp = new Bitmap(listdata[pathIndex].filePath);
                     }
                     trainingImgs.Add( new GrayImage(bmp));
-                    labels.Add(listdata[pathIndex].label);
+                    labels.Add((int)listdata[pathIndex].label);
                     pathIndex++;
                 }
                 fr.Train(trainingImgs.ToArray(), labels.ToArray());

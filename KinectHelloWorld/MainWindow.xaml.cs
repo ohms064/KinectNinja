@@ -1,31 +1,24 @@
 ﻿//#define ON_TOP //For debug only
 //#define TRAINING
-#define MOUSE_CONTROL
+//#define MOUSE_CONTROL
 #define VIEW_CAMERA
-//#define BY_FACE_RECOGNITION
-#define BY_JOINT_RECOGNITION
 
-using Microsoft.Kinect;
-using Microsoft.Kinect.Toolkit;
-using Microsoft.Kinect.Toolkit.Controls;
-using System;
-using System.Drawing;
-using System.Runtime.InteropServices;
-using System.Drawing.Imaging;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Windows;
-using Microsoft.Kinect.Toolkit.Interaction;
-using KinectHelloWorld.SupportClasses;
-using System.Windows.Controls;
 using Emgu.CV;
 using Emgu.CV.Face;
 using Emgu.CV.UI;
-using Emgu.CV.Structure;
-using Emgu.Util;
-using System.Windows.Forms;
-using static Emgu.CV.Face.FaceRecognizer;
+using KinectHelloWorld.SupportClasses;
+using Microsoft.Kinect;
+using Microsoft.Kinect.Toolkit;
+using Microsoft.Kinect.Toolkit.Controls;
+using Microsoft.Kinect.Toolkit.Interaction;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Globalization;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using ColorImage = Emgu.CV.Image<Emgu.CV.Structure.Bgr, byte>;
 
 namespace KinectHelloWorld {
     /// <summary>
@@ -35,13 +28,16 @@ namespace KinectHelloWorld {
 
         public const int WIDTH = 100, HEIGHT = 100, HALF_WIDTH = 50, HALF_HEIGHT = 50;
         private const int CROPPED_WIDTH = 500, CROPPED_HEIGHT = 400, CROPPED_X = 30, CROPPED_Y = 50;
+        private Rectangle areaOfInterest;
+        private const string CLASSIFIER_PATH = "Classifiers\\haarcascade_frontalface_alt2.xml";
         private KinectSensor sensor;
+#if MOUSE_CONTROL
         private InteractionStream _interactionStream;
+#endif
         private UserInfo[] _userInfos;
-        public FaceRecognizer fr;
-        private CascadeClassifier classifier;
+        GenderClassifier _genderClassifier;
         private bool[] isClicks;
-        private Skeleton activeSkeleton = null; 
+        private Skeleton activeSkeleton = null;
         private KinectMouseController mouseController;
 #if VIEW_CAMERA
         private ImageViewer imgViewer, grayImgViewer;
@@ -52,7 +48,7 @@ namespace KinectHelloWorld {
         public MainWindow() {
             InitializeComponent();
             Loaded += MainWindowLoaded;
-            
+
 #if ON_TOP
             StatusValue.Text = "Debugging!";
             Activated += MainWindowActive;
@@ -62,18 +58,28 @@ namespace KinectHelloWorld {
 #endif
             mouseController = new KinectMouseController();
 
-            classifier = new CascadeClassifier("Classifiers\\haarcascade_frontalface_alt2.xml");
-        }
+            FaceRecognizer fr = new EigenFaceRecognizer(14, 123);
+            fr.Load(TrainingWindow.TRAINING_PATH);
 
-        private void MainWindowLoaded(object sender, RoutedEventArgs e) {
 #if VIEW_CAMERA
             imgViewer = new ImageViewer();
             grayImgViewer = new ImageViewer();
             imgViewer.Show();
             grayImgViewer.Show();
-            fr = new EigenFaceRecognizer(14, 123);
-            fr.Load(TrainingWindow.TRAINING_PATH);
 #endif
+
+            _genderClassifier = new GenderClassifier {
+                classifier = new CascadeClassifier(CLASSIFIER_PATH),
+                faceRecognizer = fr,
+                recognizerWidth = WIDTH,
+                recognizerHeight = HEIGHT,
+                viewer = grayImgViewer,
+                threshold = 100D
+            };
+            areaOfInterest = new Rectangle(CROPPED_X, CROPPED_Y, CROPPED_WIDTH, CROPPED_HEIGHT);
+        }
+
+        private void MainWindowLoaded(object sender, RoutedEventArgs e) {
 #if TRAINING
             TrainingWindow training = new TrainingWindow();
             training.Show();
@@ -144,7 +150,8 @@ namespace KinectHelloWorld {
                     sensor = args.NewSensor;
 
                     //Establece el suavizado del movimiento de los Joints.
-                    TransformSmoothParameters smoothingParam = new TransformSmoothParameters(); {
+                    TransformSmoothParameters smoothingParam = new TransformSmoothParameters();
+                    {
                         smoothingParam.Smoothing = 0.5f;
                         smoothingParam.Correction = 0.1f;
                         smoothingParam.Prediction = 0.5f;
@@ -153,10 +160,10 @@ namespace KinectHelloWorld {
                     };
                     sensor.SkeletonStream.Enable(smoothingParam);
                     sensor.SkeletonFrameReady += KinectSkeletonFrameReady;
-                    sensor.DepthFrameReady += KinectDepthFrameReady;
 #if MOUSE_CONTROL
                     _interactionStream = new InteractionStream(sensor, new InteractionClient());
                     _interactionStream.InteractionFrameReady += KinectInteractionFrameReady;
+                    sensor.DepthFrameReady += KinectDepthFrameReady;
 #endif
 
 #if VIEW_CAMERA
@@ -180,35 +187,41 @@ namespace KinectHelloWorld {
 #region KinectFramesReady
         private void KinectSkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs args) {
             Skeleton[] skeletons = new Skeleton[0];
-            using(SkeletonFrame skeletonFrame = args.OpenSkeletonFrame() ) {
+            using( SkeletonFrame skeletonFrame = args.OpenSkeletonFrame() ) {
                 if( skeletonFrame != null ) {
                     skeletons = new Skeleton[skeletonFrame.SkeletonArrayLength];
                     try {
                         skeletonFrame.CopySkeletonDataTo(skeletons);
+#if MOUSE_CONTROL
                         Vector4 accelReading = sensor.AccelerometerGetCurrentReading();
                         _interactionStream.ProcessSkeleton(skeletons, accelReading, skeletonFrame.Timestamp);
-                    }catch( InvalidOperationException ) {
+#endif
+                    }
+                    catch( InvalidOperationException ) {
                         //Ignoramos el frame
+                        activeSkeleton = null;
                         return;
                     }
                 }
             }
 
             if( skeletons.Length == 0 ) {
+                activeSkeleton = null;
                 return;
             }
 
             //Retorna el primer jugador que tenga tracking del Kinect.
-            Skeleton[] trackedSkeletons = (from s in skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s).ToArray();
-            if(trackedSkeletons.Length == 0 ) {
+            Skeleton[] trackedSkeletons = ( from s in skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s ).ToArray();
+            if( trackedSkeletons.Length == 0 ) {
+                activeSkeleton = null;
                 return;
             }
 
-
+            //Para este punto ya tenemos por lo menos un candidato para activeSkeleton
             activeSkeleton = trackedSkeletons[0];
-            if(trackedSkeletons.Length > 1 ) {
+            if( trackedSkeletons.Length > 1 ) {
                 for( int i = 1; i < trackedSkeletons.Length; i++ ) {
-                    if(KinectDistanceTools.FirstSkeletonIsCloserToSensor(ref trackedSkeletons[i], ref activeSkeleton, JointType.HipCenter) ) {
+                    if( KinectDistanceTools.FirstSkeletonIsCloserToSensor(ref trackedSkeletons[i], ref activeSkeleton, JointType.HipCenter) ) {
                         activeSkeleton = trackedSkeletons[i];
                     }
                 }
@@ -235,10 +248,10 @@ namespace KinectHelloWorld {
             ZValueLeft.Text = leftHand.Position.Z.ToString("F", CultureInfo.InvariantCulture);
 
             //Queremos la mano más cercana al sensor para que controle el mouse.
-            if( KinectDistanceTools.FirstIsCloserToSensor( ref rightHand, ref leftHand )) {
+            if( KinectDistanceTools.FirstIsCloserToSensor(ref rightHand, ref leftHand) ) {
                 RightRaised.Text = "Activada";
                 LeftRaised.Text = "Desactivado";
-                Vector2 result = mouseController.Move(ref rightHand,  isClicks[(int)HandType.Right]);
+                Vector2 result = mouseController.Move(ref rightHand, isClicks[(int) HandType.Right]);
                 MousePos.Text = string.Format("X: {0}, Y: {1}, Click: {2}", result.x, result.y, isClicks[(int) HandType.Right] ? "Sí" : "No");
             }
             else {
@@ -252,7 +265,7 @@ namespace KinectHelloWorld {
 
 #if MOUSE_CONTROL
         private void KinectInteractionFrameReady(object sender, InteractionFrameReadyEventArgs args) {
-            if(activeSkeleton == null ) {
+            if( activeSkeleton == null ) {
                 return;
             }
             using( var iaf = args.OpenInteractionFrame() ) { //dispose as soon as possible
@@ -263,151 +276,67 @@ namespace KinectHelloWorld {
 
             UserInfo userInfo = ( from u in _userInfos where u.SkeletonTrackingId == activeSkeleton.TrackingId select u ).FirstOrDefault();
 
-            if(userInfo == null ) {
+            if( userInfo == null ) {
                 return;
             }
-            
+
             int userID = userInfo.SkeletonTrackingId;
 
             var hands = userInfo.HandPointers;
 
-            if(hands.Count != 0) {
+            if( hands.Count != 0 ) {
                 foreach( var hand in hands ) {
                     bool grip = hand.HandEventType == InteractionHandEventType.Grip;
                     bool gripRelease = hand.HandEventType == InteractionHandEventType.GripRelease;
-                    AnalyzeGrip(grip, gripRelease, ref isClicks[(int)hand.HandType]);
+                    mouseController.AnalyzeGrip(grip, gripRelease, ref isClicks[(int) hand.HandType]);
                 }
             }
         }
-#endif
-        private void KinectDepthFrameReady(object sender, DepthImageFrameReadyEventArgs args) {
-            using( DepthImageFrame depthFrame = args.OpenDepthImageFrame() ) {
-                if( depthFrame == null )
-                    return;
 
-                try {
-                    _interactionStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
+        private void KinectDepthFrameReady(object sender, DepthImageFrameReadyEventArgs args) {
+
+            using( DepthImageFrame depthFrame = args.OpenDepthImageFrame() ) {
+                if(depthFrame == null ) {
+                    return;
                 }
-                catch( InvalidOperationException ) {
-                    // DepthFrame functions may throw when the sensor gets
-                    // into a bad state.  Ignore the frame in that case.
-                }
+                FramesReady.DepthFrameReady(depthFrame, ref _interactionStream);
             }
-        }
+
+    }
+#endif
 
 #if VIEW_CAMERA
         private void KinectColorFrameReady(object sender, ColorImageFrameReadyEventArgs args) {
             using( ColorImageFrame colorFrame = args.OpenColorImageFrame() ) {
-                if(colorFrame != null ) {
-                    byte[] imgBytes = new byte[colorFrame.PixelDataLength];
-                    colorFrame.CopyPixelDataTo(imgBytes);
-                    Bitmap bmp = new Bitmap(colorFrame.Width, colorFrame.Height, PixelFormat.Format32bppRgb);
-                    BitmapData bmpData = bmp.LockBits(
-                        new Rectangle(0, 0, bmp.Width, bmp.Height), 
-                        ImageLockMode.WriteOnly, 
-                        bmp.PixelFormat);
-                    Marshal.Copy(imgBytes, 0, bmpData.Scan0, imgBytes.Length);
-                    bmp.UnlockBits(bmpData);
-
-                    Image<Bgr, byte> img = new Image<Bgr, byte>(bmp);
-
-                    Image<Gray, byte> img_greyscale = img.Convert<Gray, byte>();
-                    //Por medio del classifier.
-
-                    //Cortamos la imagen donde encontraremos caras para minimizar cálculos
-                    img_greyscale.ROI = new Rectangle(CROPPED_X, CROPPED_Y, CROPPED_WIDTH, CROPPED_HEIGHT); 
-
-                    img_greyscale = img_greyscale.Copy();
-
-                    img_greyscale._EqualizeHist();
-#if BY_FACE_RECOGNITION
-                    Rectangle[] faces = classifier.DetectMultiScale(img_greyscale, 1.4, 4, new System.Drawing.Size(100, 100), new System.Drawing.Size(800, 800));
-                    int i = 0;
-                    foreach( Rectangle face in faces ) {
-                        Rectangle realFace = face;
-                        realFace.X += 30;
-                        realFace.Y += 50;
-                        img_greyscale.ROI = realFace;
-                        
-                        Image<Gray, byte> cropped = img_greyscale.Copy();
-                        cropped = cropped.Resize(WIDTH, HEIGHT, Emgu.CV.CvEnum.Inter.Linear);
-
-                        PredictionResult pr = fr.Predict(cropped);
-                        switch( pr.Label ) {
-                            case 0:
-                                img.Draw(realFace, new Bgr(Color.Blue), 4);
-                                break;
-                            case 1:
-                                img.Draw(realFace, new Bgr(Color.Crimson), 4);
-                                break;
-                            default:
-                                img.Draw(realFace, new Bgr(Color.Black), 4);
-                                break;
-                        }
-                    }
-#endif
-#if BY_JOINT_RECOGNITION
-                    //Por medio del Skeleton.
-                    if( activeSkeleton != null ) {
-                        Joint head = activeSkeleton.Joints[JointType.Head];
-                        ColorImagePoint headPoint =  sensor.CoordinateMapper.MapSkeletonPointToColorPoint(head.Position, ColorImageFormat.RgbResolution640x480Fps30);
-
-                        Rectangle rectHead = new Rectangle(
-                            (int) headPoint.X - HALF_WIDTH,
-                            (int) headPoint.Y - HALF_HEIGHT,
-                            WIDTH,
-                            HEIGHT);
-                        img_greyscale.ROI = rectHead;
-                        Image<Gray, byte> cropped = img_greyscale.Copy();
-                        cropped = cropped.Resize(WIDTH, HEIGHT, Emgu.CV.CvEnum.Inter.Linear);
-                        try {
-                            PredictionResult pr = fr.Predict(cropped);
-                            switch( pr.Label ) {
-                                case 0:
-                                    img.Draw(rectHead, new Bgr(Color.Blue), 4);
-                                    break;
-                                case 1:
-                                    img.Draw(rectHead, new Bgr(Color.Crimson), 4);
-                                    break;
-                                default:
-                                    img.Draw(rectHead, new Bgr(Color.Black), 4);
-                                    break;
-                            }
-                        }
-                        catch {
-                            //Ignoramos errores.
-                        }
-                        
-                    }
-#endif
-                    img_greyscale.ROI = Rectangle.Empty;
-                    imgViewer.Image = img;
-                    grayImgViewer.Image = img_greyscale;
-
-
+                if( colorFrame == null ) {
+                    return;
                 }
+                ColorImage img;
+                if( activeSkeleton == null ) {
+                    img = FramesReady.ColorFrameReady(colorFrame, _genderClassifier, areaOfInterest);
+                    TBPlayerStatus.Text = "Tracking Player: false";
+                }
+                else {
+                    img = FramesReady.ColorFrameReady(colorFrame, _genderClassifier, areaOfInterest, sensor, activeSkeleton.Joints[JointType.Head]);
+                    TBPlayerStatus.Text = "Tracking Player: true";
+                }
+                imgViewer.Image = img;
+
             }
 
         }
 #endif
-        
+
 #endregion
 
-        private void AnalyzeGrip(bool grip, bool gripRelease, ref bool isClick) {
-            if( gripRelease ) {
-                isClick = false;
-            }
-            else if( grip ) {
-                isClick = true;
-            }
-        }
-
+#region WINDOWS_CONTROLLERS
         private bool isDragging = false;
         private void SliderMotorAngle_DragCompleted(object sender, RoutedEventArgs e) {
             try {
                 sensor.ElevationAngle = (int) SliderMotorAngle.Value;
                 KinectAngle.Text = string.Format("Ángulo: {0}", sensor.ElevationAngle.ToString());
-            }catch (InvalidOperationException except){
+            }
+            catch( InvalidOperationException except ) {
                 SliderMotorAngle.Value = sensor.ElevationAngle;
             }
             finally {
@@ -426,9 +355,10 @@ namespace KinectHelloWorld {
                     KinectAngle.Text = string.Format("Ángulo: {0}", sensor.ElevationAngle.ToString());
                 }
                 catch( InvalidOperationException except ) {
-                   SliderMotorAngle.Value = sensor.ElevationAngle;
+                    SliderMotorAngle.Value = sensor.ElevationAngle;
                 }
             }
         }
+#endregion
     }
 }

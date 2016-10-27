@@ -36,5 +36,14 @@ namespace KinectHelloWorld.SupportClasses {
             
         }
 
+        public void AnalyzeGrip(bool grip, bool gripRelease, ref bool isClick) {
+            if( gripRelease ) {
+                isClick = false;
+            }
+            else if( grip ) {
+                isClick = true;
+            }
+        }
+
     }
 }

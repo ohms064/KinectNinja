@@ -10,7 +10,7 @@ namespace KinectHelloWorld.SupportClasses {
     /// </summary>
     public class TrainingData {
         public string filePath { get; set; }
-        public int label { get; set; }
+        public GenderEnum label { get; set; }
 
         public static void Serialize(string path, List<TrainingData> data) {
             XmlSerializer ser = new XmlSerializer(typeof(List<TrainingData>));
