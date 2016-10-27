@@ -33,6 +33,7 @@ namespace KinectHelloWorld {
 
         public TrainingWindow() {
             InitializeComponent();
+            BDelete.IsEnabled = false;
             isEditingXML = false;
             listdata = TrainingData.Deserialize(IMAGES_PATH);
             CBInterpolation.ItemsSource = Enum.GetValues(typeof(Emgu.CV.CvEnum.Inter));
@@ -55,8 +56,8 @@ namespace KinectHelloWorld {
             currentData = new TrainingData();
             Photo.Stretch = Stretch.Fill;
             pathIndex = 0;
-            FaceRecognizer fr = new EigenFaceRecognizer();
-            if( !File.Exists(TRAINING_PATH) && currentData.filePath == null && !File.Exists(currentData.filePath) ) {
+            FaceRecognizer fr = new EigenFaceRecognizer(14, 123);
+            if( File.Exists(TRAINING_PATH) ) {
                 fr.Load(TRAINING_PATH);
             }
             _genderClassifier = new GenderClassifier {
@@ -76,6 +77,14 @@ namespace KinectHelloWorld {
                 foreach(TrainingData path in paths ) {
                     currentData = new TrainingData { label = parsedLabel, filePath = path.filePath };
                     listdata.Add(currentData);
+                    switch( currentData.label ) {
+                        case GenderEnum.FEMALE:
+                            female++;
+                            break;
+                        case GenderEnum.MALE:
+                            male++;
+                            break;
+                    }
                 }
                 pathIndex = paths.Length - 1;
                 LabelCurrent.Text = string.Format("{0}/{1}", pathIndex + 1, paths.Length);
@@ -116,6 +125,7 @@ namespace KinectHelloWorld {
             Photo.Source = null;
             TrainingData.Serialize(IMAGES_PATH, listdata);
             TBGenderCount.Text = string.Format("Male: {0} Female: {1}", male, female);
+            TBStatus.Text = "Nuevo dato(s)!";
         }
 
         private void OpenFile(object sender, RoutedEventArgs e) {
@@ -212,6 +222,10 @@ namespace KinectHelloWorld {
         }
 
         private void BXML_Click(object sender, RoutedEventArgs e) {
+            if( listdata.Count == 0 ) {
+                TBStatus.Text = "No hay datos!";
+                return;
+            }
             paths = listdata.ToArray();
             pathIndex = 0;
             LabelCurrent.Text = string.Format("{0}/{1}", pathIndex + 1, paths.Length);
@@ -223,7 +237,14 @@ namespace KinectHelloWorld {
         private void BPredict_Click(object sender, RoutedEventArgs e) {
             GrayImage sample = new GrayImage(currentData.filePath);
             sample = sample.Resize(MainWindow.WIDTH, MainWindow.HEIGHT, (Emgu.CV.CvEnum.Inter) CBInterpolation.SelectedItem);
-            FaceRecognizer.PredictionResult prediction = _genderClassifier.faceRecognizer.Predict(sample);
+            FaceRecognizer.PredictionResult prediction;
+            try {
+                prediction = _genderClassifier.faceRecognizer.Predict(sample);
+            }
+            catch {
+                TBStatus.Text = "Cannot predict without data!";
+                return;
+            }
             TBStatus.Text = string.Format("Res: {0}\nD: {1:0.##}", prediction.Label.ToString(), prediction.Distance);
             switch( prediction.Label ) {
                 case 0:
@@ -243,14 +264,32 @@ namespace KinectHelloWorld {
         private void BDelete_Click(object sender, RoutedEventArgs e) {
             if( !isEditingXML )
                 return;
+            TrainingData toDelete = listdata[pathIndex];
+            switch( toDelete.label ) {
+                case GenderEnum.FEMALE:
+                    female--;
+                    break;
+                case GenderEnum.MALE:
+                    male--;
+                    break;
+            }
             listdata.RemoveAt(pathIndex);
             paths = listdata.ToArray();
             if(pathIndex >= paths.Length ) {
                 pathIndex = paths.Length - 1;
             }
-            currentData = paths[pathIndex];
-            SetPathToWindow(currentData);
+            if( pathIndex >= 0 ) {
+                currentData = paths[pathIndex];
+                SetPathToWindow(currentData);
+            }else {
+                Photo.Source = null;
+            }
+            if(listdata.Count == 0 ) {
+                BDelete.IsEnabled = false;
+            }
             TrainingData.Serialize(IMAGES_PATH, listdata);
+            LabelCurrent.Text = string.Format("{0}/{1}", pathIndex + 1, paths.Length);
+            TBGenderCount.Text = string.Format("Male: {0} Female: {1}", male, female);
         }
     }
 }

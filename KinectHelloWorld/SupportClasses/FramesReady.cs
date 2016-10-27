@@ -1,6 +1,7 @@
 ﻿
 using Emgu.CV;
 using Emgu.CV.Face;
+using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Microsoft.Kinect;
 using Microsoft.Kinect.Toolkit.Interaction;
@@ -15,6 +16,8 @@ using GrayImage = Emgu.CV.Image<Emgu.CV.Structure.Gray, byte>;
 
 namespace KinectHelloWorld.SupportClasses {
     class FramesReady {
+        private const double fontSize = 0.5D;
+        private const int fontThickness = 1;
         public static bool DepthFrameReady(DepthImageFrame depthFrame, ref InteractionStream interactionStream) {
             try {
                 interactionStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
@@ -46,9 +49,13 @@ namespace KinectHelloWorld.SupportClasses {
                 return null;
                 //Para cualquier error ignoramos el frame.
             }
-            img.Draw(playerFace, genderClassifier.ColorChooser(playerPrediction), 5);
+            Bgr color = genderClassifier.ColorChooser(playerPrediction);
+            img.Draw(playerFace, color, 5);
+            img.Draw(playerPrediction.Distance.ToString(), playerFace.Location, FontFace.HersheyDuplex, fontSize, color, fontThickness);
             for(int i = 0; i < facesResult.Count; i++ ) {
-                img.Draw(facesResult[i], genderClassifier.ColorChooser(predictions[i]), 2);
+                color = genderClassifier.ColorChooser(predictions[i]);
+                img.Draw(facesResult[i], color, 2);
+                img.Draw(predictions[i].Distance.ToString(), facesResult[i].Location, FontFace.HersheyDuplex, fontSize, color, fontThickness);
             }
             return img;
         }
@@ -57,7 +64,6 @@ namespace KinectHelloWorld.SupportClasses {
             ColorImage img = ImageTools.GetColorImage(colorFrame);
             List<Rectangle> facesResult = genderClassifier.GetFaces(img, areaOfInterest);
             if( facesResult.Count == 0) {
-                Console.WriteLine("No faces!");
                 return img;
             }
             PredictionResult[] predictions;
@@ -69,7 +75,10 @@ namespace KinectHelloWorld.SupportClasses {
                 //Para cualquier error ignoramos el frame.
             }
             for( int i = 0; i < facesResult.Count; i++ ) {
-                img.Draw(facesResult[i], genderClassifier.ColorChooser(predictions[i]), 2);
+                Bgr color = genderClassifier.ColorChooser(predictions[i]);
+                img.Draw(facesResult[i], color, 2);
+                img.Draw(predictions[i].Distance.ToString(), facesResult[i].Location, FontFace.HersheyDuplex, fontSize, color, fontThickness);
+                Console.WriteLine(string.Format("Location: {0} Distance: {1} Label: {2}", facesResult[i].Location, predictions[i].Distance, predictions[i].Label));
             }
             return img;
         }
