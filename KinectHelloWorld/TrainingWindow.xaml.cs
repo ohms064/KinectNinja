@@ -72,7 +72,7 @@ namespace KinectHelloWorld {
         private void SaveData(object sender, RoutedEventArgs e) {
             if( currentData.filePath == "" || currentData.filePath == null)
                 return;
-            if(SetAll.IsChecked == true && pathIndex == 0 && !isEditingXML) {
+            if(CBAllSet.IsChecked == true && pathIndex == 0 && !isEditingXML) {
                 GenderEnum parsedLabel = (GenderEnum)CBGender.SelectedItem;
                 foreach(TrainingData path in paths ) {
                     currentData = new TrainingData { label = parsedLabel, filePath = path.filePath };
@@ -152,6 +152,7 @@ namespace KinectHelloWorld {
             FilePathValue.Text = path.filePath;
             currentData.filePath = path.filePath;
             CBGender.SelectedValue = path.label;
+            Bitmap source;
             if( currentData.filePath.EndsWith("pgm") ) {
                 Bitmap bmp = PNM.ReadPNM(currentData.filePath) as Bitmap;
                 ColorImage imgDetec = new ColorImage(bmp);
@@ -160,9 +161,7 @@ namespace KinectHelloWorld {
                     imgDetec.Draw(face, new Emgu.CV.Structure.Bgr(System.Drawing.Color.AliceBlue), 1);
                 }
                 TBFaces.Text = string.Format("Faces: {0}", faces.Count);
-                bmp = imgDetec.ToBitmap();
-                Photo.Source = bmp .ToBitmapSource();
-                TBDimen.Text = string.Format("W: {0} H: {1}", bmp.Width, bmp.Height);
+                source = imgDetec.ToBitmap();
             }
             else {
                 BitmapImage bi3 = new BitmapImage();
@@ -175,10 +174,15 @@ namespace KinectHelloWorld {
                     imgDetec.Draw(face, new Emgu.CV.Structure.Bgr(System.Drawing.Color.AliceBlue), 1);
                 }
                 TBFaces.Text = string.Format("Faces: {0}", faces.Count);
-                bi3 = imgDetec.ToBitmap().ToBitmapImage();
-                Photo.Source = bi3;
-                TBDimen.Text = string.Format("W: {0} H: {1}", (int) bi3.Width, (int) bi3.Height);
+                source = imgDetec.ToBitmap();
             }
+            TBDimen.Text = string.Format("W: {0} H: {1}", (int) source.Width, (int) source.Height);
+            if( CBTrainer.IsChecked == true ) {
+                GrayImage img = new GrayImage(source);
+                img._EqualizeHist();
+                source = img.ToBitmap();
+            }
+            Photo.Source = source.ToBitmapImage();
         }
 
         private void BNext_Click(object sender, RoutedEventArgs e) {
@@ -237,6 +241,8 @@ namespace KinectHelloWorld {
         private void BPredict_Click(object sender, RoutedEventArgs e) {
             GrayImage sample = new GrayImage(currentData.filePath);
             sample = sample.Resize(MainWindow.WIDTH, MainWindow.HEIGHT, (Emgu.CV.CvEnum.Inter) CBInterpolation.SelectedItem);
+            sample._EqualizeHist();
+            Photo.Source = sample.ToBitmap().ToBitmapImage();
             FaceRecognizer.PredictionResult prediction;
             try {
                 prediction = _genderClassifier.faceRecognizer.Predict(sample);

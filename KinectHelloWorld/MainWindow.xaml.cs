@@ -1,7 +1,7 @@
 ﻿//#define ON_TOP //For debug only
-//#define TRAINING
+#define TRAINING
 //#define MOUSE_CONTROL
-#define VIEW_CAMERA
+//#define VIEW_CAMERA
 
 using Emgu.CV;
 using Emgu.CV.Face;

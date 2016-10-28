@@ -21,19 +21,20 @@
         <Button x:Name="FileButton" Content="Open" HorizontalAlignment="Left" Margin="101,143,0,0" VerticalAlignment="Top" Width="75" Click="OpenFile" Grid.Column="3"/>
         <Image x:Name="Photo" HorizontalAlignment="Left" Height="100" Margin="53,10,0,0" VerticalAlignment="Top" Width="100" Grid.Column="3"/>
         <TextBlock x:Name="LabelCurrent" HorizontalAlignment="Left" Margin="43,110,0,0" TextWrapping="Wrap" Text="/" VerticalAlignment="Top" Height="21" Width="66" Grid.ColumnSpan="2" Grid.Column="2"/>
-        <RadioButton x:Name="SetAll" Content="Set All" HorizontalAlignment="Left" Margin="123,216,0,0" VerticalAlignment="Top" Height="20" Grid.Column="3"/>
-        <Button x:Name="BNext" Content="Next" HorizontalAlignment="Left" Margin="115,246,0,0" VerticalAlignment="Top" Width="75" Click="BNext_Click" Grid.ColumnSpan="3"/>
+        <Button x:Name="BNext" Content="Next" HorizontalAlignment="Left" Margin="55,246,0,0" VerticalAlignment="Top" Width="75" Click="BNext_Click" Grid.ColumnSpan="2" Grid.Column="2"/>
         <Button x:Name="BTrain" Content="Train" HorizontalAlignment="Left" Margin="10,213,0,0" VerticalAlignment="Top" Width="75" Click="BTrain_Click"/>
         <TextBlock x:Name="TBFaces" HorizontalAlignment="Left" Margin="43,89,0,0" TextWrapping="Wrap" Text="Faces: " VerticalAlignment="Top" RenderTransformOrigin="-1.699,2.304" Grid.ColumnSpan="2" Grid.Column="2"/>
         <TextBlock x:Name="TBDimen" HorizontalAlignment="Left" Margin="62,110,0,0" TextWrapping="Wrap" Text="W: H:" VerticalAlignment="Top" Width="97" Grid.Column="3"/>
         <TextBlock x:Name="TBGenderCount" HorizontalAlignment="Left" Margin="21,84,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="137" Grid.ColumnSpan="3"/>
         <Button x:Name="BXML" Content="View XML" HorizontalAlignment="Left" Margin="10,246,0,0" VerticalAlignment="Top" Width="75" Click="BXML_Click"/>
-        <Button x:Name="BPrevious" Content="Previous" HorizontalAlignment="Left" Margin="115,213,0,0" VerticalAlignment="Top" Width="75" Click="BPrevious_Click" Grid.ColumnSpan="3"/>
+        <Button x:Name="BPrevious" Content="Previous" HorizontalAlignment="Left" Margin="55,213,0,0" VerticalAlignment="Top" Width="75" Click="BPrevious_Click" Grid.ColumnSpan="2" Grid.Column="2"/>
         <Button x:Name="BPredict" Content="Predict" HorizontalAlignment="Left" Margin="10,183,0,0" VerticalAlignment="Top" Width="75" Click="BPredict_Click"/>
-        <TextBlock x:Name="TBStatus" HorizontalAlignment="Left" Margin="10,271,0,0" TextWrapping="Wrap" Text="Res:" VerticalAlignment="Top" Width="466" Height="175" Grid.ColumnSpan="4"/>
-        <Button x:Name="BDelete" Content="Delete" HorizontalAlignment="Left" Margin="0,213,0,0" VerticalAlignment="Top" Width="75" Click="BDelete_Click" Grid.Column="3"/>
+        <TextBlock x:Name="TBStatus" HorizontalAlignment="Left" Margin="10,271,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="466" Height="175" Grid.ColumnSpan="4"><Run Text="Res:"/></TextBlock>
+        <Button x:Name="BDelete" Content="Delete" HorizontalAlignment="Left" Margin="0,246,0,0" VerticalAlignment="Top" Width="75" Click="BDelete_Click" Grid.ColumnSpan="2" Grid.Column="1"/>
         <ComboBox x:Name="CBInterpolation" HorizontalAlignment="Left" Margin="90,181,0,0" VerticalAlignment="Top" Width="230" Grid.ColumnSpan="4"/>
         <ComboBox x:Name="CBGender" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="62,109,0,0" VerticalAlignment="Top" Width="120"/>
+        <CheckBox x:Name="CBTrainer" Content="As Seen by Trainer" HorizontalAlignment="Left" Margin="90,213,0,0" VerticalAlignment="Top" Grid.ColumnSpan="3" Width="132"/>
+        <CheckBox x:Name="CBAllSet" Content="Set All" Grid.Column="3" HorizontalAlignment="Left" Margin="101,213,0,0" VerticalAlignment="Top"/>
 
     </Grid>
 </Window>
