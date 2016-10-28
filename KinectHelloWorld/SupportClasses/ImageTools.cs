@@ -14,6 +14,11 @@ using GrayImage = Emgu.CV.Image<Emgu.CV.Structure.Gray, byte>;
 
 namespace KinectHelloWorld.SupportClasses {
     public static class ImageTools {
+        /// <summary>
+        /// For an ImageFrame returns an Image.
+        /// </summary>
+        /// <param name="colorFrame"></param>
+        /// <returns>The corresponding image.</returns>
         public static ColorImage GetColorImage(ColorImageFrame colorFrame) {
             byte[] imgBytes = new byte[colorFrame.PixelDataLength];
             colorFrame.CopyPixelDataTo(imgBytes);
@@ -27,8 +32,18 @@ namespace KinectHelloWorld.SupportClasses {
 
             return new ColorImage(bmp);
         }
+
+        /// <summary>
+        /// Crops an image.
+        /// </summary>
+        /// <typeparam name="TColor"></typeparam>
+        /// <typeparam name="TDepth"></typeparam>
+        /// <param name="img"></param>
+        /// <param name="area"></param>
+        /// <returns>The image of the selected area.</returns>
         public static Image<TColor, TDepth> Crop<TColor, TDepth> (this Image<TColor, TDepth> img, Rectangle area) 
             where TColor : struct, IColor where TDepth : new() {
+            Rectangle previous = img.ROI;
             try {
                 img.ROI = area;
                 return img.Copy();
@@ -36,6 +51,9 @@ namespace KinectHelloWorld.SupportClasses {
             }
             catch( Exception e ) {
                 throw e;
+            }
+            finally {
+                img.ROI = previous;
             }
         }
 
@@ -49,10 +67,35 @@ namespace KinectHelloWorld.SupportClasses {
             where TColor : struct, IColor where TDepth : new() {
             try {
                 img._EqualizeHist();
+                img.Sobel(1, 1, 5);
                 img._SmoothGaussian(5);
             }
             catch( Exception e ) {
                 throw e;
+            }
+        }
+
+        public static void OrderRectanglesByArea(ref List<Rectangle> rects) {
+            rects.Sort(delegate (Rectangle first, Rectangle second) {
+                float firstArea = first.Height * first.Width;
+                float secondArea = second.Height * second.Width;
+                if( firstArea > secondArea ) {
+                    return -1;
+                }
+                else {
+                    return 1;
+                }
+            });
+        }
+
+        public static void RemoveInnerRectangles(ref List<Rectangle> rects) {
+            for( int i = 0; i < rects.Count - 1; i++ ) {
+                for( int j = i + 1; j < rects.Count; j++ ) {
+                    if( rects[i].Contains(rects[j]) ) {
+                        rects.RemoveAt(j);
+                        break;
+                    }
+                }
             }
         }
 

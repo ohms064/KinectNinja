@@ -34,11 +34,16 @@ namespace KinectHelloWorld.SupportClasses {
             ColorImage img = ImageTools.GetColorImage(colorFrame);
             List<Rectangle> facesResult = genderClassifier.GetFaces(img, areaOfInterest);
             Rectangle playerFace = genderClassifier.GetFaceByJoint(img, sensor, head);
+
+            ImageTools.OrderRectanglesByArea(ref facesResult);
+
             for( int i = 0; i < facesResult.Count; i++ ) {
-                if( playerFace.IntersectsWith(facesResult[i]) ) {
+                if( playerFace.IntersectsWith(facesResult[i]) || playerFace.Contains(facesResult[i])) {
                     facesResult.RemoveAt(i);
                 }
             }
+            ImageTools.RemoveInnerRectangles(ref facesResult);
+
             PredictionResult[] predictions;
             PredictionResult playerPrediction;
             try {
@@ -66,6 +71,11 @@ namespace KinectHelloWorld.SupportClasses {
             if( facesResult.Count == 0) {
                 return img;
             }
+
+            ImageTools.OrderRectanglesByArea(ref facesResult);
+
+            ImageTools.RemoveInnerRectangles(ref facesResult);
+
             PredictionResult[] predictions;
             try {
                 predictions = genderClassifier.ClassifyByFaces(img, areaOfInterest, facesResult.ToArray());
@@ -78,7 +88,6 @@ namespace KinectHelloWorld.SupportClasses {
                 Bgr color = genderClassifier.ColorChooser(predictions[i]);
                 img.Draw(facesResult[i], color, 2);
                 img.Draw(predictions[i].Distance.ToString(), facesResult[i].Location, FontFace.HersheyDuplex, fontSize, color, fontThickness);
-                Console.WriteLine(string.Format("Location: {0} Distance: {1} Label: {2}", facesResult[i].Location, predictions[i].Distance, predictions[i].Label));
             }
             return img;
         }

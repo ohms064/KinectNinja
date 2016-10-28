@@ -1,10 +1,11 @@
 ﻿//#define ON_TOP //For debug only
-//#define TRAINING
+#define TRAINING
 //#define MOUSE_CONTROL
-#define VIEW_CAMERA
+//#define VIEW_CAMERA
 
 using Emgu.CV;
 using Emgu.CV.Face;
+using Emgu.CV.Structure;
 using Emgu.CV.UI;
 using KinectHelloWorld.SupportClasses;
 using Microsoft.Kinect;
@@ -20,6 +21,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using ColorImage = Emgu.CV.Image<Emgu.CV.Structure.Bgr, byte>;
+using GrayImage = Emgu.CV.Image<Emgu.CV.Structure.Gray, byte>;
 
 namespace KinectHelloWorld {
     /// <summary>
@@ -41,7 +43,7 @@ namespace KinectHelloWorld {
         private Skeleton activeSkeleton = null;
         private KinectMouseController mouseController;
 #if VIEW_CAMERA
-        private ImageViewer imgViewer, grayImgViewer;
+        private ImageViewer imgViewer;
 #endif
         private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
         private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
@@ -63,7 +65,7 @@ namespace KinectHelloWorld {
             Activated += MainWindowActive;
             Deactivated += MainWindowHidden;
 #else
-            StatusValue.Text = "Release";
+            StatusValue.Text = "Release";                       
 #endif
             mouseController = new KinectMouseController();
 
@@ -72,9 +74,7 @@ namespace KinectHelloWorld {
 
 #if VIEW_CAMERA
             imgViewer = new ImageViewer();
-            grayImgViewer = new ImageViewer();
             imgViewer.Show();
-            grayImgViewer.Show();
 #endif
 
             _genderClassifier = new GenderClassifier {
@@ -82,10 +82,7 @@ namespace KinectHelloWorld {
                 faceRecognizer = fr,
                 recognizerWidth = width,
                 recognizerHeight = height,
-#if VIEW_CAMERA
-                viewer = grayImgViewer,
-#endif
-                threshold = 100D
+                threshold = 1000D
             };
             areaOfInterest = new Rectangle(CROPPED_X, CROPPED_Y, CROPPED_WIDTH, CROPPED_HEIGHT);
         }
@@ -331,7 +328,9 @@ namespace KinectHelloWorld {
                     img = FramesReady.ColorFrameReady(colorFrame, _genderClassifier, areaOfInterest, sensor, activeSkeleton.Joints[JointType.Head]);
                     TBPlayerStatus.Text = "Tracking Player: true";
                 }
-                imgViewer.Image = img;
+                GrayImage grayImg = img.Convert<Gray, byte>();
+                grayImg.Processing();
+                imgViewer.Image = grayImg;
 
             }
 

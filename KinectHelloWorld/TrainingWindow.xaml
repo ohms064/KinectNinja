@@ -33,8 +33,9 @@
         <Button x:Name="BDelete" Content="Delete" HorizontalAlignment="Left" Margin="0,246,0,0" VerticalAlignment="Top" Width="75" Click="BDelete_Click" Grid.ColumnSpan="2" Grid.Column="1"/>
         <ComboBox x:Name="CBInterpolation" HorizontalAlignment="Left" Margin="90,181,0,0" VerticalAlignment="Top" Width="230" Grid.ColumnSpan="4"/>
         <ComboBox x:Name="CBGender" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="62,109,0,0" VerticalAlignment="Top" Width="120"/>
-        <CheckBox x:Name="CBTrainer" Content="As Seen by Trainer" HorizontalAlignment="Left" Margin="90,213,0,0" VerticalAlignment="Top" Grid.ColumnSpan="3" Width="132"/>
-        <CheckBox x:Name="CBAllSet" Content="Set All" Grid.Column="3" HorizontalAlignment="Left" Margin="101,213,0,0" VerticalAlignment="Top"/>
+        <CheckBox x:Name="CBTrainer" Content="As Seen by Trainer" HorizontalAlignment="Left" Margin="70,251,0,0" VerticalAlignment="Top" Width="132" Grid.Column="3"/>
+        <CheckBox x:Name="CBAllSet" Content="Set All" Grid.Column="3" HorizontalAlignment="Left" Margin="70,218,0,0" VerticalAlignment="Top"/>
+        <Button x:Name="BUpdate" Grid.ColumnSpan="2" Content="Update" Grid.Column="1" HorizontalAlignment="Left" Margin="0,213,0,0" VerticalAlignment="Top" Width="75" Click="BUpdate_Click"/>
 
     </Grid>
 </Window>
