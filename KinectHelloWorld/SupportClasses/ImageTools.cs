@@ -75,6 +75,10 @@ namespace KinectHelloWorld.SupportClasses {
             }
         }
 
+        /// <summary>
+        /// Orders a list of rectnagles in descending order.
+        /// </summary>
+        /// <param name="rects"></param>
         public static void OrderRectanglesByArea(ref List<Rectangle> rects) {
             rects.Sort(delegate (Rectangle first, Rectangle second) {
                 float firstArea = first.Height * first.Width;
@@ -88,11 +92,15 @@ namespace KinectHelloWorld.SupportClasses {
             });
         }
 
+        /// <summary>
+        /// For a sorted list of rectnagles by area, removes any rectangle that contains another.
+        /// </summary>
+        /// <param name="rects"></param>
         public static void RemoveInnerRectangles(ref List<Rectangle> rects) {
             for( int i = 0; i < rects.Count - 1; i++ ) {
                 for( int j = i + 1; j < rects.Count; j++ ) {
                     if( rects[i].Contains(rects[j]) ) {
-                        rects.RemoveAt(j);
+                        rects.RemoveAt(i);
                         break;
                     }
                 }

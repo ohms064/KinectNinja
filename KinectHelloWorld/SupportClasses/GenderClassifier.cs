@@ -21,7 +21,7 @@ namespace KinectHelloWorld.SupportClasses {
         public double threshold;
 
         public Bgr ColorChooser(PredictionResult pr) {
-            if(pr.Distance > threshold ) {
+            if( pr.Distance > threshold ) {
                 return new Bgr(Color.Black);
             }
             switch( (GenderEnum) pr.Label ) {
@@ -46,6 +46,13 @@ namespace KinectHelloWorld.SupportClasses {
             return new List<Rectangle>(faces);
         }
 
+        public List<Rectangle> GetFaces(ColorImage img) {
+            GrayImage grayScaleImage = img.Convert<Gray, byte>();
+            grayScaleImage.Processing();
+            Rectangle[] faces = classifier.DetectMultiScale(grayScaleImage, 1.4, 4, new Size(50, 50), new Size(400, 400));
+            return new List<Rectangle>(faces);
+        }
+
         public PredictionResult[] ClassifyByFaces(ColorImage img, Rectangle areaOfInterest, Rectangle[] faces) {
             GrayImage grayScaleImage = img.Convert<Gray, byte>().Crop(areaOfInterest);
             List<PredictionResult> listPredict = new List<PredictionResult>();
@@ -63,6 +70,23 @@ namespace KinectHelloWorld.SupportClasses {
             }
             return listPredict.ToArray();
         }
+
+        public PredictionResult[] ClassifyByFaces(ColorImage img, Rectangle[] faces) {
+            GrayImage grayScaleImage = img.Convert<Gray, byte>();
+            List<PredictionResult> listPredict = new List<PredictionResult>();
+            for( int i = 0; i < faces.Length; i++ ) {
+                GrayImage cropped = grayScaleImage.Crop(faces[i]);
+                cropped = cropped.Resize(recognizerWidth, recognizerHeight, Emgu.CV.CvEnum.Inter.Linear);
+                try {
+                    listPredict.Add(Predict(cropped));
+                }
+                catch( Exception e ) {
+                    throw e;
+                }
+            }
+            return listPredict.ToArray();
+        }
+
 
         public PredictionResult PredictFace(ColorImage img, Rectangle face){
             GrayImage grayScaleImage = img.Convert<Gray, byte>().Crop(face);

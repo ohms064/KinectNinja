@@ -1,7 +1,7 @@
 ﻿//#define ON_TOP //For debug only
-#define TRAINING
+//#define TRAINING
 //#define MOUSE_CONTROL
-//#define VIEW_CAMERA
+#define VIEW_CAMERA
 
 using Emgu.CV;
 using Emgu.CV.Face;
@@ -82,7 +82,7 @@ namespace KinectHelloWorld {
                 faceRecognizer = fr,
                 recognizerWidth = width,
                 recognizerHeight = height,
-                threshold = 1000D
+                threshold = 50D
             };
             areaOfInterest = new Rectangle(CROPPED_X, CROPPED_Y, CROPPED_WIDTH, CROPPED_HEIGHT);
         }
@@ -330,7 +330,7 @@ namespace KinectHelloWorld {
                 }
                 GrayImage grayImg = img.Convert<Gray, byte>();
                 grayImg.Processing();
-                imgViewer.Image = grayImg;
+                imgViewer.Image = img;
 
             }
 

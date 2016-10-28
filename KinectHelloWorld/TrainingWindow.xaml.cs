@@ -162,7 +162,7 @@ namespace KinectHelloWorld {
             if( currentData.filePath.EndsWith("pgm") ) {
                 Bitmap bmp = PNM.ReadPNM(currentData.filePath) as Bitmap;
                 ColorImage imgDetec = new ColorImage(bmp);
-                faces = _genderClassifier.GetFaces(imgDetec, MainWindow.areaOfInterest);
+                faces = _genderClassifier.GetFaces(imgDetec);
                 foreach(Rectangle face in faces ) {
                     imgDetec.Draw(face, new Emgu.CV.Structure.Bgr(System.Drawing.Color.AliceBlue), 1);
                 }
@@ -175,7 +175,7 @@ namespace KinectHelloWorld {
                 bi3.UriSource = new Uri(currentData.filePath, UriKind.Absolute);
                 bi3.EndInit();
                 ColorImage imgDetec = new ColorImage(bi3.ToBitmap());
-                faces = _genderClassifier.GetFaces(imgDetec, MainWindow.areaOfInterest);
+                faces = _genderClassifier.GetFaces(imgDetec);
                 foreach( Rectangle face in faces ) {
                     imgDetec.Draw(face, new Emgu.CV.Structure.Bgr(System.Drawing.Color.AliceBlue), 1);
                 }
@@ -282,7 +282,8 @@ namespace KinectHelloWorld {
             GrayImage sample = new GrayImage(currentData.filePath);
             if(faces.Count != 0 ) {
                 ImageTools.OrderRectanglesByArea(ref faces);
-                sample.ROI = faces[0];
+                ImageTools.RemoveInnerRectangles(ref faces);
+                sample.ROI = faces[faces.Count - 1];
                 sample = sample.Copy();
             }
             sample = sample.Resize(_genderClassifier.recognizerWidth, _genderClassifier.recognizerHeight, (Emgu.CV.CvEnum.Inter) CBInterpolation.SelectedItem);
