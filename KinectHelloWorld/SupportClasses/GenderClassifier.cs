@@ -38,13 +38,12 @@ namespace KinectHelloWorld.SupportClasses {
 
         public List<Rectangle> GetFaces(ColorImage img, Rectangle areaOfInterest) {
             GrayImage grayScaleImage = img.Convert<Gray, byte>().Crop(areaOfInterest);
-            grayScaleImage._EqualizeHist();
+            grayScaleImage.Processing();
             if( viewer != null ) {
                 viewer.Image = grayScaleImage;
             }
 
             Rectangle[] faces = classifier.DetectMultiScale(grayScaleImage, 1.4, 4, new Size(50, 50), new Size(400, 400));
-            List<PredictionResult> listPredict = new List<PredictionResult>();
             for( int i = 0; i < faces.Length; i++ ) {
                 faces[i].X += areaOfInterest.X;
                 faces[i].Y += areaOfInterest.Y;
@@ -92,8 +91,8 @@ namespace KinectHelloWorld.SupportClasses {
                 recognizerHeight);
         }
 
-        private PredictionResult Predict(GrayImage grayScaleImage) {
-            grayScaleImage._EqualizeHist();
+        public PredictionResult Predict(GrayImage grayScaleImage) {
+            grayScaleImage.Processing();
             try {
                 return faceRecognizer.Predict(grayScaleImage);
             }

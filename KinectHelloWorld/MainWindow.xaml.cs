@@ -1,7 +1,7 @@
 ﻿//#define ON_TOP //For debug only
-#define TRAINING
+//#define TRAINING
 //#define MOUSE_CONTROL
-//#define VIEW_CAMERA
+#define VIEW_CAMERA
 
 using Emgu.CV;
 using Emgu.CV.Face;
@@ -13,6 +13,7 @@ using Microsoft.Kinect.Toolkit.Controls;
 using Microsoft.Kinect.Toolkit.Interaction;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -26,7 +27,7 @@ namespace KinectHelloWorld {
     /// </summary>
     public partial class MainWindow : Window {
 
-        public const int WIDTH = 120, HEIGHT = 120;
+        public static int width = 120, height = 120;
         private const int CROPPED_WIDTH = 500, CROPPED_HEIGHT = 400, CROPPED_X = 30, CROPPED_Y = 50;
         public static Rectangle areaOfInterest;
         private const string CLASSIFIER_PATH = "Classifiers\\haarcascade_frontalface_alt2.xml";
@@ -48,6 +49,14 @@ namespace KinectHelloWorld {
         public MainWindow() {
             InitializeComponent();
             Loaded += MainWindowLoaded;
+
+            Configuration confg = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            if( confg.AppSettings.Settings["Width"] == null || !int.TryParse(confg.AppSettings.Settings["Width"].Value, out width) ) {
+                width = 120;
+            }
+            if( confg.AppSettings.Settings["Height"] == null || !int.TryParse(confg.AppSettings.Settings["Height"].Value, out height) ) {
+                height = 120;
+            }
 
 #if ON_TOP
             StatusValue.Text = "Debugging!";
@@ -71,8 +80,8 @@ namespace KinectHelloWorld {
             _genderClassifier = new GenderClassifier {
                 classifier = new CascadeClassifier(CLASSIFIER_PATH),
                 faceRecognizer = fr,
-                recognizerWidth = WIDTH,
-                recognizerHeight = HEIGHT,
+                recognizerWidth = width,
+                recognizerHeight = height,
 #if VIEW_CAMERA
                 viewer = grayImgViewer,
 #endif

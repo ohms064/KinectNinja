@@ -13,6 +13,7 @@ using System.IO;
 using GrayImage = Emgu.CV.Image<Emgu.CV.Structure.Gray, byte>;
 using ColorImage = Emgu.CV.Image<Emgu.CV.Structure.Bgr, byte>;
 using Emgu.CV;
+using System.Configuration;
 
 namespace KinectHelloWorld {
     /// <summary>
@@ -63,8 +64,8 @@ namespace KinectHelloWorld {
             _genderClassifier = new GenderClassifier {
                 classifier = new CascadeClassifier("Classifiers\\haarcascade_frontalface_alt2.xml"),
                 faceRecognizer = fr,
-                recognizerHeight = MainWindow.HEIGHT,
-                recognizerWidth = MainWindow.WIDTH,
+                recognizerHeight = MainWindow.height,
+                recognizerWidth = MainWindow.width,
                 threshold = 100
             };            
         }
@@ -179,7 +180,7 @@ namespace KinectHelloWorld {
             TBDimen.Text = string.Format("W: {0} H: {1}", (int) source.Width, (int) source.Height);
             if( CBTrainer.IsChecked == true ) {
                 GrayImage img = new GrayImage(source);
-                img._EqualizeHist();
+                img.Processing();
                 source = img.ToBitmap();
             }
             Photo.Source = source.ToBitmapImage();
@@ -198,14 +199,16 @@ namespace KinectHelloWorld {
             List<GrayImage> trainingImgs = new List<GrayImage>();
             List<int> labels = new List<int>();
             pathIndex = 0;
-            Bitmap bmp;
+            Bitmap bmp = ReadBitmap(listdata[pathIndex].filePath);
+            _genderClassifier.recognizerWidth = bmp.Width;
+            _genderClassifier.recognizerHeight = bmp.Height;
             while( pathIndex < listdata.Count ) {
-                for( int i = 0; i < MAX_RANGE && pathIndex < listdata.Count; i++ ) {
-                    if( listdata[pathIndex].filePath.EndsWith("pgm") ) {
-                        bmp = PNM.ReadPNM(listdata[pathIndex].filePath) as Bitmap;
-                    }
-                    else {
-                        bmp = new Bitmap(listdata[pathIndex].filePath);
+                for( int i = 1; i < MAX_RANGE && pathIndex < listdata.Count; i++ ) {
+                    bmp = ReadBitmap(listdata[pathIndex].filePath);
+                    if( _genderClassifier.recognizerWidth != bmp.Width || _genderClassifier.recognizerHeight != bmp.Height ) {
+                        TBStatus.Text = string.Format("No se completó el entrenamiento {0}. Las imágenes no tienen el mismo tamaño", i);
+                        _genderClassifier.faceRecognizer.Load(TRAINING_PATH);
+                        return;
                     }
                     trainingImgs.Add( new GrayImage(bmp));
                     labels.Add((int)listdata[pathIndex].label);
@@ -213,8 +216,34 @@ namespace KinectHelloWorld {
                 }
                 _genderClassifier.faceRecognizer.Train(trainingImgs.ToArray(), labels.ToArray());
             }
+            Configuration confg = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            
+            if( confg.AppSettings.Settings["Width"]  != null ) {
+                confg.AppSettings.Settings["Width"].Value = _genderClassifier.recognizerWidth.ToString();
+            }else {
+                confg.AppSettings.Settings.Add(new KeyValueConfigurationElement("Width", _genderClassifier.recognizerWidth.ToString()));
+            }
+
+            if( confg.AppSettings.Settings["Height"] != null ) {
+                confg.AppSettings.Settings["Height"].Value = _genderClassifier.recognizerHeight.ToString();
+            }
+            else {
+                confg.AppSettings.Settings.Add(new KeyValueConfigurationElement("Height", _genderClassifier.recognizerHeight.ToString()));
+            }
+            
+            confg.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
             _genderClassifier.faceRecognizer.Save(TRAINING_PATH);
             TBStatus.Text = "Trained!";
+        }
+
+        private Bitmap ReadBitmap(string path) {
+            if( path.EndsWith("pgm") ) {
+                return PNM.ReadPNM(listdata[pathIndex].filePath) as Bitmap;
+            }
+            else {
+                return new Bitmap(listdata[pathIndex].filePath);
+            }
         }
 
         private void BPrevious_Click(object sender, RoutedEventArgs e) {
@@ -239,13 +268,16 @@ namespace KinectHelloWorld {
         }
 
         private void BPredict_Click(object sender, RoutedEventArgs e) {
+            if(currentData == null || currentData.filePath == "" || currentData.filePath == null ) {
+                return;
+            }
             GrayImage sample = new GrayImage(currentData.filePath);
-            sample = sample.Resize(MainWindow.WIDTH, MainWindow.HEIGHT, (Emgu.CV.CvEnum.Inter) CBInterpolation.SelectedItem);
+            sample = sample.Resize(MainWindow.width, MainWindow.height, (Emgu.CV.CvEnum.Inter) CBInterpolation.SelectedItem);
             sample._EqualizeHist();
             Photo.Source = sample.ToBitmap().ToBitmapImage();
             FaceRecognizer.PredictionResult prediction;
             try {
-                prediction = _genderClassifier.faceRecognizer.Predict(sample);
+                prediction = _genderClassifier.Predict(sample);
             }
             catch {
                 TBStatus.Text = "Cannot predict without data!";

@@ -39,6 +39,22 @@ namespace KinectHelloWorld.SupportClasses {
             }
         }
 
+        /// <summary>
+        /// Extension method which will process the image for the Classifier.
+        /// </summary>
+        /// <typeparam name="TColor"></typeparam>
+        /// <typeparam name="TDepth"></typeparam>
+        /// <param name="img"></param>
+        public static void Processing<TColor, TDepth>(this Image<TColor, TDepth> img)
+            where TColor : struct, IColor where TDepth : new() {
+            try {
+                img._EqualizeHist();
+                img._SmoothGaussian(5);
+            }
+            catch( Exception e ) {
+                throw e;
+            }
+        }
 
     }
 }
