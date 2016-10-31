@@ -66,8 +66,8 @@ namespace KinectHelloWorld {
             _genderClassifier = new GenderClassifier {
                 classifier = new CascadeClassifier("Classifiers\\haarcascade_frontalface_alt2.xml"),
                 faceRecognizer = fr,
-                recognizerHeight = MainWindow.height,
-                recognizerWidth = MainWindow.width,
+                recognizerHeight = MainWindow.recognitionHeight,
+                recognizerWidth = MainWindow.recognitionWidth,
                 threshold = 100
             };            
         }

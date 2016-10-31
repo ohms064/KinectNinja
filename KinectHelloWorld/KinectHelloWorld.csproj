@@ -111,6 +111,8 @@
     <Compile Include="SupportClasses\KinectDistanceTools.cs" />
     <Compile Include="SupportClasses\KinectMouseController.cs" />
     <Compile Include="SupportClasses\PGM.cs" />
+    <Compile Include="SupportClasses\MasterKiwiConnection.cs" />
+    <Compile Include="SupportClasses\SocketHelper.cs" />
     <Compile Include="SupportClasses\TrainingData.cs" />
     <Compile Include="SupportClasses\Vector2.cs" />
     <Compile Include="SupportClasses\Vector3.cs" />

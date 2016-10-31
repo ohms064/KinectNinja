@@ -1,8 +1,9 @@
-﻿//#define ON_TOP //For debug only
-//#define TRAINING
-//#define MOUSE_CONTROL
-#define VIEW_CAMERA
+﻿//#define ON_TOP //For debug only, prevents MainWindow from hiding.
+//#define TRAINING //Opens TraningWindow
+//#define MOUSE_CONTROL //Makes use of the Kinect to control the mouse
+#define VIEW_CAMERA //Shows the camera input
 
+//Because of the defines I don't recommend deleting any using.
 using Emgu.CV;
 using Emgu.CV.Face;
 using Emgu.CV.Structure;
@@ -14,10 +15,12 @@ using Microsoft.Kinect.Toolkit.Controls;
 using Microsoft.Kinect.Toolkit.Interaction;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Configuration;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using ColorImage = Emgu.CV.Image<Emgu.CV.Structure.Bgr, byte>;
@@ -29,19 +32,22 @@ namespace KinectHelloWorld {
     /// </summary>
     public partial class MainWindow : Window {
 
-        public static int width = 120, height = 120;
-        private const int CROPPED_WIDTH = 500, CROPPED_HEIGHT = 400, CROPPED_X = 30, CROPPED_Y = 50;
-        public static Rectangle areaOfInterest;
-        private const string CLASSIFIER_PATH = "Classifiers\\haarcascade_frontalface_alt2.xml";
+        public static int recognitionWidth = 120, recognitionHeight = 120; //Size of the training of the photos.
+        private const int CROPPED_WIDTH = 500, CROPPED_HEIGHT = 400, CROPPED_X = 30, CROPPED_Y = 50; //The definition for the areaOfInterest.
+        public static Rectangle areaOfInterest; //The area where faces will be detected
+        private const string CLASSIFIER_PATH = "Classifiers\\haarcascade_frontalface_alt2.xml"; //The XML file which defines how to detect faces.
+
         private KinectSensor sensor;
 #if MOUSE_CONTROL
         private InteractionStream _interactionStream;
 #endif
         private UserInfo[] _userInfos;
-        GenderClassifier _genderClassifier;
+        private GenderClassifier _genderClassifier;
         private bool[] isClicks;
         private Skeleton activeSkeleton = null;
         private KinectMouseController mouseController;
+        private MasterKiwiSocket connection;
+        private Thread socketThread;
 #if VIEW_CAMERA
         private ImageViewer imgViewer;
 #endif
@@ -52,12 +58,14 @@ namespace KinectHelloWorld {
             InitializeComponent();
             Loaded += MainWindowLoaded;
 
+            Closing += MainWindowClosing;
+
             Configuration confg = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            if( confg.AppSettings.Settings["Width"] == null || !int.TryParse(confg.AppSettings.Settings["Width"].Value, out width) ) {
-                width = 120;
+            if( confg.AppSettings.Settings["Width"] == null || !int.TryParse(confg.AppSettings.Settings["Width"].Value, out recognitionWidth) ) {
+                recognitionWidth = 120;
             }
-            if( confg.AppSettings.Settings["Height"] == null || !int.TryParse(confg.AppSettings.Settings["Height"].Value, out height) ) {
-                height = 120;
+            if( confg.AppSettings.Settings["Height"] == null || !int.TryParse(confg.AppSettings.Settings["Height"].Value, out recognitionHeight) ) {
+                recognitionHeight = 120;
             }
 
 #if ON_TOP
@@ -65,7 +73,7 @@ namespace KinectHelloWorld {
             Activated += MainWindowActive;
             Deactivated += MainWindowHidden;
 #else
-            StatusValue.Text = "Release";                       
+            StatusValue.Text = "Release";
 #endif
             mouseController = new KinectMouseController();
 
@@ -80,8 +88,8 @@ namespace KinectHelloWorld {
             _genderClassifier = new GenderClassifier {
                 classifier = new CascadeClassifier(CLASSIFIER_PATH),
                 faceRecognizer = fr,
-                recognizerWidth = width,
-                recognizerHeight = height,
+                recognizerWidth = recognitionWidth,
+                recognizerHeight = recognitionHeight,
                 threshold = 50D
             };
             areaOfInterest = new Rectangle(CROPPED_X, CROPPED_Y, CROPPED_WIDTH, CROPPED_HEIGHT);
@@ -102,7 +110,16 @@ namespace KinectHelloWorld {
 
             _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
             isClicks = new bool[Enum.GetValues(typeof(HandType)).Length];
+
+            connection = new MasterKiwiSocket(ActivateColorFrame);
+            socketThread = new Thread(connection.StartListening);
+            socketThread.IsBackground = true;
+            socketThread.Start();
 #endif
+        }
+
+        private void MainWindowClosing(object sender, CancelEventArgs args) {
+            connection.isActive = false;
         }
 
 #if ON_TOP
@@ -192,7 +209,7 @@ namespace KinectHelloWorld {
 
         }
 
-#region KinectFramesReady
+        #region KinectFramesReady
         private void KinectSkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs args) {
             Skeleton[] skeletons = new Skeleton[0];
             using( SkeletonFrame skeletonFrame = args.OpenSkeletonFrame() ) {
@@ -337,9 +354,16 @@ namespace KinectHelloWorld {
         }
 #endif
 
-#endregion
+        #endregion
 
-#region WINDOWS_CONTROLLERS
+        #region CALLBACK
+        public void ActivateColorFrame(string option) {
+            //sensor.ColorStream.Disable();
+            sensor.ElevationAngle = -sensor.ElevationAngle;
+        }
+        #endregion
+
+        #region WINDOWS_CONTROLLERS
         private bool isDragging = false;
         private void SliderMotorAngle_DragCompleted(object sender, RoutedEventArgs e) {
             try {
@@ -369,6 +393,6 @@ namespace KinectHelloWorld {
                 }
             }
         }
-#endregion
+        #endregion
     }
 }
