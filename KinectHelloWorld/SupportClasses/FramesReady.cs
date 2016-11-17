@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using static Emgu.CV.Face.FaceRecognizer;
 using ColorImage = Emgu.CV.Image<Emgu.CV.Structure.Bgr, byte>;
 using GrayImage = Emgu.CV.Image<Emgu.CV.Structure.Gray, byte>;
+using KinectHelloWorld.SupportClasses.Excel;
 
 namespace KinectHelloWorld.SupportClasses {
     class FramesReady {
@@ -49,6 +50,8 @@ namespace KinectHelloWorld.SupportClasses {
             try {
                 predictions = genderClassifier.ClassifyByFaces(img, areaOfInterest, facesResult.ToArray());
                 playerPrediction = genderClassifier.PredictFace(img, playerFace);
+                ExcelRow.instance.ReceiveImpressionsPredictions(predictions);
+                ExcelRow.instance.ReceivePlayerPrediction(playerPrediction);
             }
             catch {
                 return null;
@@ -79,6 +82,7 @@ namespace KinectHelloWorld.SupportClasses {
             PredictionResult[] predictions;
             try {
                 predictions = genderClassifier.ClassifyByFaces(img, areaOfInterest, facesResult.ToArray());
+                ExcelRow.instance.ReceiveImpressionsPredictions(predictions);
             }
             catch {
                 return img;

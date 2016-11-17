@@ -18,7 +18,7 @@ namespace KinectHelloWorld.SupportClasses {
         public CascadeClassifier classifier;
         public FaceRecognizer faceRecognizer;
         public int recognizerWidth, recognizerHeight;
-        public double threshold;
+        public static double threshold;
 
         public Bgr ColorChooser(PredictionResult pr) {
             if( pr.Distance > threshold ) {

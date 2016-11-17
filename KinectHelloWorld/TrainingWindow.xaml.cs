@@ -63,13 +63,13 @@ namespace KinectHelloWorld {
             if( File.Exists(TRAINING_PATH) ) {
                 fr.Load(TRAINING_PATH);
             }
+            GenderClassifier.threshold = 100;
             _genderClassifier = new GenderClassifier {
                 classifier = new CascadeClassifier("Classifiers\\haarcascade_frontalface_alt2.xml"),
                 faceRecognizer = fr,
                 recognizerHeight = MainWindow.recognitionHeight,
-                recognizerWidth = MainWindow.recognitionWidth,
-                threshold = 100
-            };            
+                recognizerWidth = MainWindow.recognitionWidth
+            };
         }
 
         private void SaveData(object sender, RoutedEventArgs e) {

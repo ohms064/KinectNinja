@@ -1,7 +1,8 @@
 ﻿//#define ON_TOP //For debug only, prevents MainWindow from hiding.
 //#define TRAINING //Opens TraningWindow
-//#define MOUSE_CONTROL //Makes use of the Kinect to control the mouse
-#define VIEW_CAMERA //Shows the camera input
+#define MOUSE_CONTROL //Makes use of the Kinect to control the mouse
+#define VIEW_CAMERA //Make use of the camera input
+//#define SHOW_CAMERA //Show the camera Input
 
 //Because of the defines I don't recommend deleting any using.
 using Emgu.CV;
@@ -9,6 +10,7 @@ using Emgu.CV.Face;
 using Emgu.CV.Structure;
 using Emgu.CV.UI;
 using KinectHelloWorld.SupportClasses;
+using KinectHelloWorld.SupportClasses.Excel;
 using Microsoft.Kinect;
 using Microsoft.Kinect.Toolkit;
 using Microsoft.Kinect.Toolkit.Controls;
@@ -32,6 +34,7 @@ namespace KinectHelloWorld {
     /// </summary>
     public partial class MainWindow : Window {
 
+        public static bool isTakingPhoto = false;
         public static int recognitionWidth = 120, recognitionHeight = 120; //Size of the training of the photos.
         private const int CROPPED_WIDTH = 500, CROPPED_HEIGHT = 400, CROPPED_X = 30, CROPPED_Y = 50; //The definition for the areaOfInterest.
         public static Rectangle areaOfInterest; //The area where faces will be detected
@@ -46,9 +49,9 @@ namespace KinectHelloWorld {
         private bool[] isClicks;
         private Skeleton activeSkeleton = null;
         private KinectMouseController mouseController;
-        private MasterKiwiSocket connection;
+        private MasterKiwiServerSocket connection;
         private Thread socketThread;
-#if VIEW_CAMERA
+#if SHOW_CAMERA
         private ImageViewer imgViewer;
 #endif
         private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
@@ -59,6 +62,8 @@ namespace KinectHelloWorld {
             Loaded += MainWindowLoaded;
 
             Closing += MainWindowClosing;
+
+            ExcelManager.CreateSingleton("test.xlsx");
 
             Configuration confg = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             if( confg.AppSettings.Settings["Width"] == null || !int.TryParse(confg.AppSettings.Settings["Width"].Value, out recognitionWidth) ) {
@@ -80,18 +85,18 @@ namespace KinectHelloWorld {
             FaceRecognizer fr = new EigenFaceRecognizer(14, 123);
             fr.Load(TrainingWindow.TRAINING_PATH);
 
-#if VIEW_CAMERA
+#if SHOW_CAMERA
             imgViewer = new ImageViewer();
             imgViewer.Show();
 #endif
-
+            GenderClassifier.threshold = 50D;
             _genderClassifier = new GenderClassifier {
                 classifier = new CascadeClassifier(CLASSIFIER_PATH),
                 faceRecognizer = fr,
                 recognizerWidth = recognitionWidth,
-                recognizerHeight = recognitionHeight,
-                threshold = 50D
+                recognizerHeight = recognitionHeight
             };
+            
             areaOfInterest = new Rectangle(CROPPED_X, CROPPED_Y, CROPPED_WIDTH, CROPPED_HEIGHT);
         }
 
@@ -111,7 +116,7 @@ namespace KinectHelloWorld {
             _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
             isClicks = new bool[Enum.GetValues(typeof(HandType)).Length];
 
-            connection = new MasterKiwiSocket(ActivateColorFrame);
+            connection = new MasterKiwiServerSocket(ActivateColorFrame);
             socketThread = new Thread(connection.StartListening);
             socketThread.IsBackground = true;
             socketThread.Start();
@@ -120,6 +125,8 @@ namespace KinectHelloWorld {
 
         private void MainWindowClosing(object sender, CancelEventArgs args) {
             connection.isActive = false;
+            ExcelManager.instance.Save();
+            ExcelManager.instance.Close();
         }
 
 #if ON_TOP
@@ -332,6 +339,9 @@ namespace KinectHelloWorld {
 
 #if VIEW_CAMERA
         private void KinectColorFrameReady(object sender, ColorImageFrameReadyEventArgs args) {
+            if( !isTakingPhoto ) {
+                return;
+            }
             using( ColorImageFrame colorFrame = args.OpenColorImageFrame() ) {
                 if( colorFrame == null ) {
                     return;
@@ -345,12 +355,14 @@ namespace KinectHelloWorld {
                     img = FramesReady.ColorFrameReady(colorFrame, _genderClassifier, areaOfInterest, sensor, activeSkeleton.Joints[JointType.Head]);
                     TBPlayerStatus.Text = "Tracking Player: true";
                 }
+                ExcelManager.instance.AddOrUpdate(DateTime.Now.GetDate(), ExcelRow.instance);
+#if SHOW_CAMERA
                 GrayImage grayImg = img.Convert<Gray, byte>();
                 grayImg.Processing();
                 imgViewer.Image = img;
-
+#endif
             }
-
+            isTakingPhoto = false;
         }
 #endif
 
@@ -358,8 +370,25 @@ namespace KinectHelloWorld {
 
         #region CALLBACK
         public void ActivateColorFrame(string option) {
-            //sensor.ColorStream.Disable();
-            sensor.ElevationAngle = -sensor.ElevationAngle;
+            string[] status = option.Split('.');
+            switch( status[0] ) {
+                case MasterKiwiServerSocket.MOVE_KINECT:
+                    sensor.ElevationAngle = -sensor.ElevationAngle;
+                    break;
+                case MasterKiwiServerSocket.TAKE_PHOTO:
+                    string won = status[1];
+                    string productGiven = status[2];
+                    ExcelRow newData = new ExcelRow {
+                        wins = won,
+                        productsGiven = productGiven,
+                        appStart = ExcelRow.instance == null ? "" : ExcelRow.instance.appStart
+                    };
+                    ExcelRow.instance = newData;
+                    isTakingPhoto = true;
+                    break;
+                default:
+                    break;
+            }
         }
         #endregion
 
@@ -388,7 +417,7 @@ namespace KinectHelloWorld {
                     sensor.ElevationAngle = (int) ( (Slider) sender ).Value;
                     KinectAngle.Text = string.Format("Ángulo: {0}", sensor.ElevationAngle.ToString());
                 }
-                catch( InvalidOperationException except ) {
+                catch( InvalidOperationException ) {
                     SliderMotorAngle.Value = sensor.ElevationAngle;
                 }
             }

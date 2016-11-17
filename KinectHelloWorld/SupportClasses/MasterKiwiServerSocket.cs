@@ -22,18 +22,20 @@ namespace KinectHelloWorld.SupportClasses {
         public StringBuilder sb = new StringBuilder();
     }
 
-    class MasterKiwiSocket {
-        public const string EOF = "<EOF>";
+    class MasterKiwiServerSocket {
+        public const string EOF = "$";
+        public const string MOVE_KINECT = "MoveKinect";
+        public const string TAKE_PHOTO = "TakePhoto";
         ResponseCallback callback;
         public static ManualResetEvent allDone = new ManualResetEvent(false);
         public bool isActive = true;
         Socket socket;
         int port;
 
-        public MasterKiwiSocket(ResponseCallback callback) {
+        public MasterKiwiServerSocket(ResponseCallback callback) {
             Configuration confg = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             if( confg.AppSettings.Settings["Port"] == null || !int.TryParse(confg.AppSettings.Settings["Port"].Value, out port) ) {
-                port = 11000;
+                port = 8888;
                 Console.WriteLine(string.Format("Invalid port. Using and saving to default port: {0}", port));
                 confg.AppSettings.Settings.Add(new KeyValueConfigurationElement("Port", port.ToString()));
                 confg.Save(ConfigurationSaveMode.Modified);
@@ -83,7 +85,7 @@ namespace KinectHelloWorld.SupportClasses {
 
             StateObject state = new StateObject();
             state.workSocket = handler;
-            handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
+            handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, SocketFlags.None,
                 new AsyncCallback(ReadCallback), state);
         }
 
@@ -112,6 +114,9 @@ namespace KinectHelloWorld.SupportClasses {
                     Console.WriteLine("Read {0} bytes from socket. \n Data : {1}",
                         content.Length, content);
                     this.callback(content.Substring(0, content.IndexOf(EOF)));
+                    content = content.Replace(EOF, "");
+                    callback(content);
+                    Send(handler, content);
                 }
                 else {
                     // Not all data received. Get more.
@@ -120,6 +125,34 @@ namespace KinectHelloWorld.SupportClasses {
                 }
             }
         }
+
+        private static void Send(Socket handler, String data) {
+            // Convert the string data to byte data using ASCII encoding.
+            byte[] byteData = Encoding.ASCII.GetBytes(data);
+
+            // Begin sending the data to the remote device.
+            handler.BeginSend(byteData, 0, byteData.Length, 0,
+                new AsyncCallback(SendCallback), handler);
+        }
+
+        private static void SendCallback(IAsyncResult ar) {
+            try {
+                // Retrieve the socket from the state object.
+                Socket handler = (Socket) ar.AsyncState;
+
+                // Complete sending the data to the remote device.
+                int bytesSent = handler.EndSend(ar);
+                Console.WriteLine("Sent {0} bytes to client.", bytesSent);
+
+                handler.Shutdown(SocketShutdown.Both);
+                handler.Close();
+
+            }
+            catch( Exception e ) {
+                Console.WriteLine(e.ToString());
+            }
+        }
+
 
     }
 }
