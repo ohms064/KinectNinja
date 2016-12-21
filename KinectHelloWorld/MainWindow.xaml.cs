@@ -63,14 +63,29 @@ namespace KinectHelloWorld {
 
             Closing += MainWindowClosing;
 
-            ExcelManager.CreateSingleton("test.xlsx");
+            ExcelManager.CreateSingleton(ConfigurationManager.AppSettings["DemographicsLocation"]);
 
             Configuration confg = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             if( confg.AppSettings.Settings["Width"] == null || !int.TryParse(confg.AppSettings.Settings["Width"].Value, out recognitionWidth) ) {
                 recognitionWidth = 120;
+                confg.AppSettings.Settings.Add(new KeyValueConfigurationElement("Width", recognitionWidth.ToString()));
+                confg.Save(ConfigurationSaveMode.Modified);
+                ConfigurationManager.RefreshSection("appSettings");
             }
             if( confg.AppSettings.Settings["Height"] == null || !int.TryParse(confg.AppSettings.Settings["Height"].Value, out recognitionHeight) ) {
                 recognitionHeight = 120;
+                confg.AppSettings.Settings.Add(new KeyValueConfigurationElement("Height", recognitionHeight.ToString()));
+                confg.Save(ConfigurationSaveMode.Modified);
+                ConfigurationManager.RefreshSection("appSettings");
+            }
+            if( confg.AppSettings.Settings["DemographicsLocation"] == null ) {
+                string path = @"..\demo.xlsx";
+                ExcelManager.CreateSingleton(path);
+                confg.AppSettings.Settings.Add(new KeyValueConfigurationElement("DemographicsLocation", path.ToString()));
+                confg.Save(ConfigurationSaveMode.Modified);
+                ConfigurationManager.RefreshSection("appSettings");
+            }else {
+                ExcelManager.CreateSingleton(ConfigurationManager.AppSettings["DemographicsLocation"]);
             }
 
 #if ON_TOP
@@ -378,11 +393,22 @@ namespace KinectHelloWorld {
                 case MasterKiwiServerSocket.TAKE_PHOTO:
                     string won = status[1];
                     string productGiven = status[2];
-                    ExcelRow newData = new ExcelRow {
-                        wins = won,
-                        productsGiven = productGiven,
-                        appStart = ExcelRow.instance == null ? "" : ExcelRow.instance.appStart
-                    };
+                    ExcelRow newData;
+                    if(won.Equals("1") ) {
+                        newData = new ExcelRow {
+                            wins = "1",
+                            productsGiven = productGiven,
+                            appStart = ExcelRow.instance == null ? "" : ExcelRow.instance.appStart,
+                        };
+                    }
+                    else {
+                        newData = new ExcelRow {
+                            losses = "1",
+                            productsGiven = productGiven,
+                            appStart = ExcelRow.instance == null ? "" : ExcelRow.instance.appStart,
+                        };
+                    }
+                    
                     ExcelRow.instance = newData;
                     isTakingPhoto = true;
                     break;
